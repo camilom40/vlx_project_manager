@@ -64,12 +64,12 @@ function KPI({
   href?: string;
 }) {
   const contenido = (
-    <div className="glass rounded-2xl p-4 transition hover:-translate-y-0.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+    <div className="glass flex h-full flex-col rounded-2xl p-4 transition hover:-translate-y-0.5">
+      <p className="min-h-[2.6em] text-[11px] font-semibold uppercase leading-[1.3] tracking-wider text-muted">
         {etiqueta}
       </p>
       <p
-        className={`mt-1.5 text-3xl font-semibold tracking-tight ${
+        className={`mt-auto text-3xl font-semibold tracking-tight ${
           alerta ? "text-danger" : ""
         }`}
       >
@@ -77,7 +77,13 @@ function KPI({
       </p>
     </div>
   );
-  return href ? <Link href={href}>{contenido}</Link> : contenido;
+  return href ? (
+    <Link href={href} className="h-full">
+      {contenido}
+    </Link>
+  ) : (
+    contenido
+  );
 }
 
 export default function InicioPage() {
