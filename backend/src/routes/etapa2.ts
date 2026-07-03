@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
+import { notify, projectRoleUserIds, teamMemberIds } from "../lib/notifications";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
@@ -104,6 +105,31 @@ etapa2Router.put(
     await logAudit(req.user!.id, "actualizar_contrato", "Contract", contract.id, {
       status,
     });
+    if (status === ContractStatus.FIRMADO) {
+      // Gerencia firmó → Planeación arranca el despiece, Contabilidad crea el centro de costo
+      const project = await prisma.project.findUnique({
+        where: { id: contract.projectId },
+      });
+      const planeacion = await teamMemberIds("Planeación");
+      const contabilidad = await teamMemberIds("Contabilidad");
+      const planeador = await projectRoleUserIds(contract.projectId, [
+        "PLANEADOR",
+      ]);
+      void notify(
+        [...planeacion, ...planeador],
+        "contrato.firmado",
+        `Contrato firmado: ${project?.name}`,
+        `Gerencia firmó el contrato de "${project?.name}". Pueden iniciar el despiece.`,
+        contract.projectId,
+      );
+      void notify(
+        contabilidad,
+        "contrato.firmado",
+        `Crear centro de costo: ${project?.name}`,
+        `Se firmó el contrato de "${project?.name}". Contabilidad debe crear el centro de costo.`,
+        contract.projectId,
+      );
+    }
     res.json({ contract: updated });
   },
 );
@@ -232,6 +258,21 @@ etapa2Router.put(
     await logAudit(req.user!.id, "actualizar_anticipo", "Advance", advance.id, {
       status,
     });
+    if (status === AdvanceStatus.VERIFICADO) {
+      // Anticipo verificado en banco → Presupuesto informa a Planeación
+      const project = await prisma.project.findUnique({
+        where: { id: advance.projectId },
+      });
+      const presupuesto = await teamMemberIds("Presupuesto");
+      const planeacion = await teamMemberIds("Planeación");
+      void notify(
+        [...presupuesto, ...planeacion],
+        "anticipo.verificado",
+        `Anticipo verificado: ${project?.name}`,
+        `El anticipo del proyecto "${project?.name}" fue verificado en el banco. La operación puede arrancar.`,
+        advance.projectId,
+      );
+    }
     res.json({ advance });
   },
 );

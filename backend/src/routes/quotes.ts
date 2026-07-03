@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
+import { notify, teamMemberIds } from "../lib/notifications";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
@@ -253,6 +254,16 @@ quotesRouter.post(
         data: { status: QuoteStatus.APROBADA },
         include: quoteInclude,
       });
+      // Aprobada del todo → notificar al cotizador y a Contabilidad/Tesorería
+      const contabilidad = await teamMemberIds("Contabilidad");
+      const tesoreria = await teamMemberIds("Tesorería");
+      void notify(
+        [updated.quoterId, ...contabilidad, ...tesoreria],
+        "cotizacion.aprobada",
+        `Cotización aprobada: ${updated.project.name}`,
+        `La cotización del proyecto "${updated.project.name}" quedó aprobada y lista para enviarse al cliente.`,
+        updated.projectId,
+      );
     }
     await logAudit(
       req.user!.id,

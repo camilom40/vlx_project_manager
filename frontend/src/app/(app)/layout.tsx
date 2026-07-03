@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 const NAV_ITEMS: { href: string; label: string; modulo: string }[] = [
@@ -12,9 +13,13 @@ const NAV_ITEMS: { href: string; label: string; modulo: string }[] = [
   { href: "/produccion", label: "Producción", modulo: "PRODUCCION" },
   { href: "/garantias", label: "Garantías", modulo: "GARANTIAS" },
   { href: "/errores", label: "Errores y retrabajos", modulo: "ERRORES" },
+  { href: "/carga", label: "Carga de trabajo", modulo: "PROYECTOS" },
+  { href: "/plantillas", label: "Plantillas", modulo: "PLANTILLAS" },
+  { href: "/notificaciones", label: "Notificaciones", modulo: "" },
   { href: "/usuarios", label: "Usuarios", modulo: "USUARIOS" },
   { href: "/equipos", label: "Equipos", modulo: "EQUIPOS" },
   { href: "/grupos", label: "Grupos de instaladores", modulo: "EQUIPOS" },
+  { href: "/auditoria", label: "Auditoría", modulo: "AUDITORIA" },
 ];
 
 export default function AppLayout({
@@ -25,6 +30,7 @@ export default function AppLayout({
   const { usuario, cargando, cerrarSesion, puede } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [sinLeer, setSinLeer] = useState(0);
 
   useEffect(() => {
     if (cargando) return;
@@ -34,6 +40,22 @@ export default function AppLayout({
       router.replace("/cambiar-password");
     }
   }, [usuario, cargando, router]);
+
+  // Contador de notificaciones sin leer (se refresca al navegar y cada minuto)
+  useEffect(() => {
+    if (!usuario) return;
+    let activo = true;
+    const consultar = () =>
+      api<{ unread: number }>("/api/notifications")
+        .then((d) => activo && setSinLeer(d.unread))
+        .catch(() => {});
+    consultar();
+    const intervalo = setInterval(consultar, 60000);
+    return () => {
+      activo = false;
+      clearInterval(intervalo);
+    };
+  }, [usuario, pathname]);
 
   if (cargando || !usuario || usuario.mustChangePassword) {
     return (
@@ -75,6 +97,11 @@ export default function AppLayout({
                 }`}
               >
                 {item.label}
+                {item.href === "/notificaciones" && sinLeer > 0 && (
+                  <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
+                    {sinLeer > 99 ? "99+" : sinLeer}
+                  </span>
+                )}
               </Link>
             );
           })}

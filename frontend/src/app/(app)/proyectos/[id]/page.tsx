@@ -29,6 +29,7 @@ import { TabContrato } from "@/components/proyecto/TabContrato";
 import { TabProduccion } from "@/components/proyecto/TabProduccion";
 import { TabActas } from "@/components/proyecto/TabActas";
 import { TabGarantia } from "@/components/proyecto/TabGarantia";
+import { TabTareas } from "@/components/proyecto/TabTareas";
 
 interface UsuarioMin {
   id: string;
@@ -87,6 +88,7 @@ const TABS = [
   { id: "produccion", label: "Producción", modulo: "PRODUCCION" },
   { id: "actas", label: "Actas y facturación", modulo: "ACTAS" },
   { id: "garantia", label: "Garantía", modulo: "GARANTIAS" },
+  { id: "tareas", label: "Tareas y Gantt", modulo: "PROYECTOS" },
 ];
 
 export default function ProyectoDetallePage() {
@@ -372,6 +374,14 @@ export default function ProyectoDetallePage() {
             projectId={proyecto.id}
             currency={proyecto.currency}
             puedeEditar={puede("GARANTIAS", "editar")}
+          />
+        </div>
+      )}
+      {tab === "tareas" && (
+        <div className="mt-6">
+          <TabTareas
+            projectId={proyecto.id}
+            puedeEditar={puede("PROYECTOS", "editar")}
           />
         </div>
       )}

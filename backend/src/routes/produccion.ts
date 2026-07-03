@@ -1,5 +1,10 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
+import {
+  notify,
+  projectRoleUserIds,
+  teamMemberIds,
+} from "../lib/notifications";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
@@ -97,6 +102,16 @@ produccionRouter.post(
       },
     });
     await logAudit(req.user!.id, "levantar_acta_vanos", "ActaVanos", acta.id);
+    // Acta de Vanos → Planeación genera los DTs
+    const planeador = await projectRoleUserIds(project.id, ["PLANEADOR"]);
+    const planeacion = await teamMemberIds("Planeación");
+    void notify(
+      [...planeador, ...planeacion],
+      "acta_vanos.levantada",
+      `Acta de Vanos lista: ${project.name}`,
+      `El supervisor levantó el Acta de Vanos de "${project.name}". Planeación debe generar los DTs. Prioridad: ${acta.priority}.`,
+      project.id,
+    );
     res.status(201).json({ acta });
   },
 );
@@ -146,6 +161,21 @@ produccionRouter.post(
       },
     });
     await logAudit(req.user!.id, "generar_dt", "DT", dt.id);
+    // DT generado → Jefe de taller coordina producción
+    const jefeTaller = await projectRoleUserIds(String(req.params.id), [
+      "JEFE_TALLER",
+    ]);
+    const proyecto = await prisma.project.findUnique({
+      where: { id: String(req.params.id) },
+      select: { name: true },
+    });
+    void notify(
+      jefeTaller,
+      "dt.generado",
+      `Nuevo DT ${dt.code}: ${proyecto?.name}`,
+      `Planeación generó el ${dt.code} para "${proyecto?.name}". Fecha de entrega requerida: ${dt.requiredDeliveryDate.toLocaleDateString("es-CO")}. Prioridad: ${dt.priority}.`,
+      String(req.params.id),
+    );
     res.status(201).json({ dt });
   },
 );
@@ -235,6 +265,21 @@ produccionRouter.post(
       data: { status: DTStatus.DESPACHADO },
     });
     await logAudit(req.user!.id, "despachar_remision", "Remision", remision.id);
+    // Despacho en camino → Supervisor recibe en obra (+ instaladores)
+    const supervisor = await projectRoleUserIds(String(req.params.id), [
+      "SUPERVISOR",
+    ]);
+    const proyecto = await prisma.project.findUnique({
+      where: { id: String(req.params.id) },
+      select: { name: true },
+    });
+    void notify(
+      supervisor,
+      "remision.despachada",
+      `Material en camino: ${proyecto?.name}`,
+      `Despacho salió de fábrica hacia "${remision.destination}" con ${remision.dts.length} DT(s). Debes firmar la recepción.`,
+      String(req.params.id),
+    );
     res.status(201).json({ remision });
   },
 );
@@ -291,6 +336,29 @@ produccionRouter.post(
     await logAudit(req.user!.id, "recibir_remision", "Remision", remision.id, {
       conforme: Boolean(conforme),
     });
+    if (!conforme && error) {
+      // Daño de transporte → jefe de planta repone; error técnico → Planeación investiga
+      const esTransporte = error.type === ReworkType.DANO_TRANSPORTE;
+      const destinatarios = esTransporte
+        ? await projectRoleUserIds(remision.projectId, ["JEFE_TALLER"])
+        : [
+            ...(await projectRoleUserIds(remision.projectId, ["PLANEADOR"])),
+            ...(await teamMemberIds("Planeación")),
+          ];
+      const proyecto = await prisma.project.findUnique({
+        where: { id: remision.projectId },
+        select: { name: true },
+      });
+      void notify(
+        destinatarios,
+        "remision.devolucion",
+        `Devolución en obra: ${proyecto?.name}`,
+        esTransporte
+          ? `Material devuelto por daño de transporte en "${proyecto?.name}". El jefe de planta debe generar el retroceso y reponer. Detalle: ${updated.observations ?? ""}`
+          : `Material devuelto por error técnico en "${proyecto?.name}". Planeación debe investigar dónde estuvo el error. Detalle: ${updated.observations ?? ""}`,
+        remision.projectId,
+      );
+    }
     res.json({ remision: updated, reworkError: error });
   },
 );

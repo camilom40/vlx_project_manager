@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
+import { notify } from "../lib/notifications";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
@@ -355,6 +356,22 @@ projectsRouter.post(
       "Project",
       project.id,
       { from: project.currentStage, to: toStage },
+    );
+    // El balón pasa a la cancha del equipo asignado al proyecto
+    const asignados = await prisma.projectAssignment.findMany({
+      where: { projectId: project.id },
+      select: { userId: true },
+    });
+    void notify(
+      asignados.map((a) => a.userId).filter((id) => id !== req.user!.id),
+      isBackwards ? "proyecto.retroceso" : "proyecto.avance",
+      isBackwards
+        ? `Retroceso: ${project.name}`
+        : `El proyecto ${project.name} avanzó de etapa`,
+      isBackwards
+        ? `${req.user!.name} devolvió el proyecto "${project.name}" a la etapa de ${toStage.toLowerCase()}. Motivo: ${reason ?? "sin especificar"}.`
+        : `${req.user!.name} movió el proyecto "${project.name}" a la etapa de ${toStage.toLowerCase()}. Revisa tus tareas pendientes.`,
+      project.id,
     );
     res.json({ project: updated });
   },

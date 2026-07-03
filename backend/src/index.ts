@@ -12,6 +12,10 @@ import { produccionRouter } from "./routes/produccion";
 import { actasRouter } from "./routes/actas";
 import { warrantiesRouter } from "./routes/warranties";
 import { errorsRouter } from "./routes/errors";
+import { notificationsRouter } from "./routes/notifications";
+import { tasksRouter } from "./routes/tasks";
+import { auditRouter } from "./routes/audit";
+import { templatesRouter } from "./routes/templates";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -35,6 +39,10 @@ app.use("/api", produccionRouter);
 app.use("/api", actasRouter);
 app.use("/api/warranties", warrantiesRouter);
 app.use("/api/errors", errorsRouter);
+app.use("/api/notifications", notificationsRouter);
+app.use("/api", tasksRouter);
+app.use("/api/audit", auditRouter);
+app.use("/api/templates", templatesRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Recurso no encontrado." });

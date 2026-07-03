@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
+import { notify, teamMemberIds } from "../lib/notifications";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import { AppModule, WarrantyStatus } from "../generated/prisma/enums";
@@ -81,6 +82,19 @@ actasRouter.post(
       },
     });
     await logAudit(req.user!.id, "registrar_acta_corte", "ActaCorte", acta.id);
+    // Acta de corte → Contabilidad factura
+    const contabilidad = await teamMemberIds("Contabilidad");
+    const proyecto = await prisma.project.findUnique({
+      where: { id: String(req.params.id) },
+      select: { name: true },
+    });
+    void notify(
+      contabilidad,
+      "acta_corte.registrada",
+      `Acta de corte para facturar: ${proyecto?.name}`,
+      `El supervisor registró el acta de corte de "${acta.section}" en "${proyecto?.name}". Contabilidad debe facturar, cruzar anticipo y aplicar retención.`,
+      String(req.params.id),
+    );
     res.status(201).json({ acta });
   },
 );
@@ -166,6 +180,15 @@ actasRouter.post(
       "registrar_acta_cierre",
       "ActaCierre",
       cierre.id,
+    );
+    // Cierre → Tesorería queda a cargo de la garantía
+    const tesoreria = await teamMemberIds("Tesorería");
+    void notify(
+      tesoreria,
+      "acta_cierre.registrada",
+      `Proyecto cerrado: ${project.name}`,
+      `Se registró el acta de cierre de "${project.name}". La garantía quedó creada con trámite estimado para ${warranty.estimatedProcessDate?.toLocaleDateString("es-CO") ?? "definir"}. Tesorería debe gestionar los paz y salvos.`,
+      projectId,
     );
     res.status(201).json({ cierre, warranty });
   },
