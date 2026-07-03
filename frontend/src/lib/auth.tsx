@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { api, setToken, getToken } from "./api";
+import { useAnimacionesActivas } from "./movimiento";
 
 export interface Usuario {
   id: string;
@@ -118,9 +119,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         puede,
       }}
     >
-      {/* Las animaciones de motion respetan prefers-reduced-motion del sistema */}
-      <MotionConfig reducedMotion="user">{children}</MotionConfig>
+      <ProveedorMotion>{children}</ProveedorMotion>
     </AuthContext.Provider>
+  );
+}
+
+// Las animaciones de `motion` siguen la preferencia efectiva de la app
+// (interruptor "Animaciones" o, por defecto, prefers-reduced-motion del sistema).
+function ProveedorMotion({ children }: { children: React.ReactNode }) {
+  const activo = useAnimacionesActivas();
+  return (
+    <MotionConfig reducedMotion={activo ? "never" : "always"}>
+      {children}
+    </MotionConfig>
   );
 }
 

@@ -102,14 +102,8 @@ body {
   }
 }
 
-.animar-entrada {
+html[data-motion="on"] .animar-entrada {
   animation: entrada-suave 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animar-entrada {
-    animation: none;
-  }
 }
 
 /* Foco visible y de marca en toda la app */
@@ -138,13 +132,10 @@ table {
 .esqueleto {
   border-radius: 0.5rem;
   background: color-mix(in oklab, var(--muted) 14%, transparent);
-  animation: pulso-esqueleto 1.4s ease-in-out infinite;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .esqueleto {
-    animation: none;
-  }
+html[data-motion="on"] .esqueleto {
+  animation: pulso-esqueleto 1.4s ease-in-out infinite;
 }
 
 /* Barra de desplazamiento discreta y tintada hacia la marca */
@@ -156,10 +147,13 @@ table {
 
 /* ============================================================
    Motion: el movimiento comunica estado (150–700ms, ease-out).
-   Todo respeta prefers-reduced-motion.
+   Gated por [data-motion], fijado sin parpadeo por SCRIPT_SIN_PARPADEO
+   (lib/movimiento.ts): sigue prefers-reduced-motion del sistema por
+   defecto, o la preferencia explícita guardada desde el interruptor
+   "Animaciones" en la sidebar.
    ============================================================ */
 
-@media (prefers-reduced-motion: no-preference) {
+html[data-motion="on"] {
   /* Filas de tabla en cascada al aparecer (solo las primeras 12 escalonan) */
   @keyframes entrada-fila {
     from {

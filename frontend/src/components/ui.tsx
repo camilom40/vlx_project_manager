@@ -9,6 +9,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { useAnimacionesActivas, usePreferenciaMovimiento } from "@/lib/movimiento";
 
 // Primitivas de UI compartidas — consistencia visual en toda la app
 
@@ -41,12 +42,10 @@ export function Badge({
 
 /** Número que cuenta hasta su valor al aparecer (una sola vez). */
 export function ContadorAnimado({ valor }: { valor: number }) {
+  const activo = useAnimacionesActivas();
   const [mostrado, setMostrado] = useState(0);
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
+    if (!activo) {
       setMostrado(valor);
       return;
     }
@@ -61,7 +60,7 @@ export function ContadorAnimado({ valor }: { valor: number }) {
     };
     raf = requestAnimationFrame(paso);
     return () => cancelAnimationFrame(raf);
-  }, [valor]);
+  }, [valor, activo]);
   return <>{mostrado}</>;
 }
 
@@ -73,13 +72,18 @@ export function BarraProgreso({
   pct: number;
   tono?: "brand" | "success" | "accent" | "danger";
 }) {
-  const [ancho, setAncho] = useState(0);
+  const activo = useAnimacionesActivas();
+  const [ancho, setAncho] = useState(activo ? 0 : Math.max(0, Math.min(100, pct)));
   useEffect(() => {
+    if (!activo) {
+      setAncho(Math.max(0, Math.min(100, pct)));
+      return;
+    }
     const id = requestAnimationFrame(() =>
       setAncho(Math.max(0, Math.min(100, pct))),
     );
     return () => cancelAnimationFrame(id);
-  }, [pct]);
+  }, [pct, activo]);
   const color = {
     brand: "bg-brand",
     success: "bg-success",
@@ -89,7 +93,9 @@ export function BarraProgreso({
   return (
     <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
       <div
-        className={`h-full rounded-full ${color} transition-[width] duration-700 ease-out motion-reduce:transition-none`}
+        className={`h-full rounded-full ${color} ${
+          activo ? "transition-[width] duration-700 ease-out" : ""
+        }`}
         style={{ width: `${ancho}%` }}
       />
     </div>
@@ -257,5 +263,37 @@ export function EstadoVacio({ children }: { children: React.ReactNode }) {
     <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted">
       {children}
     </p>
+  );
+}
+
+/**
+ * Interruptor "Animaciones": fuerza las animaciones activas o inactivas
+ * dentro de la app, sin importar la preferencia de movimiento reducido
+ * del sistema operativo. Vive en la sidebar.
+ */
+export function InterruptorAnimaciones() {
+  const activo = useAnimacionesActivas();
+  const [, establecer] = usePreferenciaMovimiento();
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={activo}
+      onClick={() => establecer(activo ? "off" : "on")}
+      className="flex w-full items-center justify-between rounded-lg px-1 py-1.5 text-xs font-medium text-muted transition duration-150 hover:text-foreground"
+    >
+      <span>Animaciones</span>
+      <span
+        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-150 ${
+          activo ? "bg-brand" : "bg-border"
+        }`}
+      >
+        <span
+          className={`inline-block h-3.5 w-3.5 translate-x-1 transform rounded-full bg-white shadow transition-transform duration-150 ${
+            activo ? "translate-x-4" : ""
+          }`}
+        />
+      </span>
+    </button>
   );
 }

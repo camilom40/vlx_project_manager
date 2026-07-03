@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { generateTempPassword, hashPassword } from "../lib/auth";
 import { logAudit } from "../lib/audit";
+import { MANAGEMENT_TEAM } from "../lib/permissions";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import { AppModule } from "../generated/prisma/enums";
@@ -81,6 +82,32 @@ usersRouter.put("/:id", authorize(AppModule.USUARIOS, "editar"), async (req, res
       return;
     }
   }
+  // Nadie puede desactivar su propia cuenta (evita quedarse sin acceso).
+  if (isActive === false && existing.id === req.user!.id) {
+    res.status(400).json({
+      error:
+        "No puedes desactivar tu propio usuario. Pídele a otro administrador que lo haga.",
+    });
+    return;
+  }
+  // El equipo Gerencia siempre debe tener al menos un usuario activo.
+  if (isActive === false && existing.teamId) {
+    const equipo = await prisma.team.findUnique({
+      where: { id: existing.teamId },
+    });
+    if (equipo?.name === MANAGEMENT_TEAM) {
+      const otrosActivos = await prisma.user.count({
+        where: { teamId: existing.teamId, isActive: true, NOT: { id: existing.id } },
+      });
+      if (otrosActivos === 0) {
+        res.status(400).json({
+          error:
+            "No puedes desactivar el último usuario activo de Gerencia. Activa o crea otro usuario de Gerencia primero.",
+        });
+        return;
+      }
+    }
+  }
   const user = await prisma.user.update({
     where: { id: existing.id },
     data: {
@@ -95,6 +122,41 @@ usersRouter.put("/:id", authorize(AppModule.USUARIOS, "editar"), async (req, res
   await logAudit(req.user!.id, "editar_usuario", "User", user.id);
   res.json({ user });
 });
+
+// Eliminar solo es posible si el usuario no dejó ningún rastro en el sistema
+// (sin historial de auditoría, cotizaciones, actas, tareas, etc.). Si tiene
+// historial, Postgres rechaza el borrado por las llaves foráneas y se lo
+// indicamos al usuario para que desactive la cuenta en su lugar, conservando
+// la trazabilidad.
+usersRouter.delete(
+  "/:id",
+  authorize(AppModule.USUARIOS, "editar"),
+  async (req, res) => {
+    const id = String(req.params.id);
+    if (id === req.user!.id) {
+      res.status(400).json({ error: "No puedes eliminar tu propio usuario." });
+      return;
+    }
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      res.status(404).json({ error: "Usuario no encontrado." });
+      return;
+    }
+    try {
+      await prisma.user.delete({ where: { id } });
+    } catch {
+      res.status(409).json({
+        error:
+          "No se puede eliminar: este usuario tiene historial asociado (cotizaciones, aprobaciones, actas, auditoría, etc.). Desactívalo en su lugar para conservar la trazabilidad.",
+      });
+      return;
+    }
+    await logAudit(req.user!.id, "eliminar_usuario", "User", id, {
+      email: user.email,
+    });
+    res.json({ ok: true });
+  },
+);
 
 usersRouter.post(
   "/:id/reset-password",

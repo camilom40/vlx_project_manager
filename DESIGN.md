@@ -59,7 +59,9 @@ Primitivas en `frontend/src/components/ui.tsx` — usar SIEMPRE estas en vez de 
 
 ## Motion
 
-El movimiento comunica estado; 150–700ms, ease-out exponencial o springs de `motion` (librería instalada, `motion/react`). `MotionConfig reducedMotion="user"` global en AuthProvider + guardas CSS: **todo** respeta `prefers-reduced-motion`.
+El movimiento comunica estado; 150–700ms, ease-out exponencial o springs de `motion` (librería instalada, `motion/react`).
+
+**Preferencia efectiva** (`lib/movimiento.ts`): por defecto sigue `prefers-reduced-motion` del sistema, pero el interruptor "Animaciones" en el pie de la sidebar (`InterruptorAnimaciones` en `ui.tsx`) permite forzarlas activas o inactivas dentro de la app, guardado en `localStorage` (clave `vlx_motion`). Se refleja como `data-motion="on"|"off"` en `<html>`, fijado sin parpadeo por un script inline (`SCRIPT_SIN_PARPADEO`) en el layout raíz — por eso ese layout lleva `suppressHydrationWarning` (mismo patrón que next-themes: el atributo lo escribe un script fuera del árbol de React). El CSS de motion (`globals.css`) está gateado por `html[data-motion="on"]` en vez de `@media (prefers-reduced-motion)` directo. `MotionConfig` en `AuthProvider` usa `reducedMotion="never"|"always"` según `useAnimacionesActivas()`. `ContadorAnimado` y `BarraProgreso` también leen ese hook.
 
 - Entrada por navegación: `animar-entrada` (350ms, translateY 6px).
 - Filas de tabla y `.lista-stagger`: cascada de 20–40ms entre elementos (global, automático).

@@ -20,7 +20,7 @@ interface Usuario {
 }
 
 export default function UsuariosPage() {
-  const { puede } = useAuth();
+  const { puede, usuario } = useAuth();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [equipos, setEquipos] = useState<Equipo[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +109,25 @@ export default function UsuariosPage() {
       setTempPassword({ nombre: u.name, valor: res.tempPassword });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al resetear.");
+    }
+  }
+
+  async function eliminar(u: Usuario) {
+    setError(null);
+    setAviso(null);
+    if (
+      !window.confirm(
+        `¿Eliminar a ${u.name}? Esto solo es posible si nunca ha dejado historial en el sistema. Si lo tiene, se te pedirá desactivarlo en su lugar.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await api(`/api/users/${u.id}`, { method: "DELETE" });
+      setAviso("Usuario eliminado.");
+      await cargar();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al eliminar.");
     }
   }
 
@@ -285,14 +304,28 @@ export default function UsuariosPage() {
                     >
                       Restablecer contraseña
                     </button>
-                    <button
-                      onClick={() => alternarActivo(u)}
-                      className={`font-medium hover:underline ${
-                        u.isActive ? "text-danger" : "text-success"
-                      }`}
-                    >
-                      {u.isActive ? "Desactivar" : "Activar"}
-                    </button>
+                    {u.id === usuario?.id ? (
+                      <span className="text-muted" title="No puedes desactivar tu propio usuario">
+                        (tu cuenta)
+                      </span>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => alternarActivo(u)}
+                          className={`font-medium hover:underline ${
+                            u.isActive ? "text-danger" : "text-success"
+                          }`}
+                        >
+                          {u.isActive ? "Desactivar" : "Activar"}
+                        </button>
+                        <button
+                          onClick={() => eliminar(u)}
+                          className="font-medium text-danger hover:underline"
+                        >
+                          Eliminar
+                        </button>
+                      </>
+                    )}
                   </td>
                 )}
               </tr>

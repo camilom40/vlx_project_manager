@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { InterruptorAnimaciones } from "@/components/ui";
 
 const NAV_GRUPOS: {
   titulo: string | null;
@@ -175,12 +176,15 @@ export default function AppLayout({
               </p>
             </div>
           </div>
+          <div className="mt-2 border-t border-border/60 pt-2">
+            <InterruptorAnimaciones />
+          </div>
           <button
             onClick={async () => {
               await cerrarSesion();
               router.replace("/login");
             }}
-            className="mt-3 w-full rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted transition duration-150 hover:border-danger hover:text-danger active:scale-[0.98]"
+            className="mt-2 w-full rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted transition duration-150 hover:border-danger hover:text-danger active:scale-[0.98]"
           >
             Cerrar sesión
           </button>
