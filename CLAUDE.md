@@ -21,9 +21,21 @@ App web de gestión de proyectos para Vitralux Windows S.A.S. (Colombia) y VLX W
 - `frontend/` — Next.js (App Router, TS, Tailwind). Dev: `npm run dev` (puerto 3000).
 - `backend/` — Express + TS + Prisma (`prisma/schema.prisma`). Dev: `npm run dev` (puerto 4000, health check en `/health`).
 
+## Base de datos local (desarrollo)
+PostgreSQL 17 **portable** en `C:\Users\Camilo Mejia\pgsql17` (la instalación con winget falló por UAC). No es servicio de Windows: si `localhost:5432` no responde, arrancarlo con `pg_ctl.exe -D ...\pgsql17\data start` (comando completo en el README). Base: `vitralux_pm`, usuario `postgres`.
+
+## Decisiones de modelado (Fase 1)
+- Prisma 7: generador `prisma-client` emite a `src/generated/prisma`; el cliente exige driver adapter → usar siempre el singleton `backend/src/lib/prisma.ts` (`@prisma/adapter-pg`).
+- Instaladores SON `User` (reciben WhatsApp); se agrupan vía `InstallerGroupMember`. Proyecto ↔ grupo de instaladores es muchos-a-muchos (`ProjectInstallerGroup`) con historial.
+- Permisos: `TeamPermission` (base por equipo) + `UserPermission` (override individual que gana), por `AppModule` con `canView`/`canEdit`.
+- `ProjectStageHistory` registra toda transición de etapa (incluye retrocesos con motivo).
+- `despiece` (DT) y detalle de vanos (ActaVanos) son `Json` en v1.
+- Timestamps de analítica en `Quote` (assignedAt/completedAt/sentAt/clientRespondedAt) alimentan el CRM.
+- Enums en español-mayúsculas (p. ej. `EN_REVISION`); la UI los traduce a etiquetas legibles.
+
 ## Estado de fases
 - [x] Fase 0 — Setup, estructura, git conectado al remoto.
-- [ ] Fase 1 — Schema de Prisma (spec §4). Effort alto: es la columna vertebral.
+- [x] Fase 1 — Schema de Prisma completo (31 tablas), migración `init` aplicada, smoke test de conexión OK.
 - [ ] Fase 2 — Auth (bcrypt + JWT), usuarios, equipos, permisos granulares por usuario, reset de contraseña por Gerencia.
 - [ ] Fase 3 — Núcleo de proyectos: 5 etapas con retrocesos, adicionales (`parentProjectId`), asignación de equipo por proyecto.
 - [ ] Fase 4 — Módulos por etapa: cotización + mini-CRM · contrato/pólizas/anticipo · producción (acta de vanos → DTs → remisión) · instalación/actas · garantías.

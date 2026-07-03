@@ -1,7 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// ============================================================
+// Gestor de Proyectos Vitralux / VLX Windows — Modelo de datos
+// Spec §4. Los valores de enums se traducen a español en la UI.
+// ============================================================
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +10,784 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+enum Market {
+  CO
+  USA
+}
+
+enum Company {
+  VITRALUX
+  VLX
+}
+
+enum Currency {
+  COP
+  USD
+}
+
+enum ProjectType {
+  PRINCIPAL
+  ADICIONAL
+}
+
+enum ProjectStage {
+  COTIZACION
+  CONTRATO
+  PRODUCCION
+  INSTALACION
+  GARANTIAS
+}
+
+enum ProjectStatus {
+  ACTIVO
+  EN_PAUSA
+  CERRADO
+  CANCELADO
+}
+
+enum QuoteStatus {
+  BORRADOR
+  EN_REVISION
+  APROBADA
+  ENVIADA
+  ACEPTADA
+  RECHAZADA
+  CAMBIOS_SOLICITADOS
+  SIN_RESPUESTA
+}
+
+enum ContactChannel {
+  LLAMADA
+  CORREO
+  WHATSAPP
+  VISITA
+  OTRO
+}
+
+enum QuoteRejectionReason {
+  MUY_COSTOSOS
+  NO_INFORMARON
+  UBICACION_NO_APLICA
+  COMPETENCIA
+  OTROS
+}
+
+enum ContractStatus {
+  RECIBIDO
+  EN_REVISION
+  RECHAZADO_CON_OBSERVACIONES
+  FIRMADO
+}
+
+enum PolicyStatus {
+  REQUERIDA
+  SOLICITADA
+  EXPEDIDA
+  PAGADA
+  ENVIADA_AL_CLIENTE
+}
+
+enum AdvanceStatus {
+  CUENTA_COBRO_GENERADA
+  ENVIADO_AL_CLIENTE
+  CONSIGNADO
+  VERIFICADO
+}
+
+enum PurchaseCategory {
+  ALUMINIO
+  VIDRIO
+  ACCESORIOS
+  OTRO
+}
+
+enum PurchaseStatus {
+  COTIZANDO
+  ORDENADA
+  ENTREGADA_PARCIAL
+  ENTREGADA
+  CANCELADA
+}
+
+enum DTStatus {
+  PENDIENTE
+  EN_COLA
+  EN_PRODUCCION
+  TERMINADO
+  DESPACHADO
+}
+
+enum Priority {
+  BAJA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum RemisionStatus {
+  DESPACHADO
+  RECIBIDO_CONFORME
+  RECIBIDO_CON_OBSERVACIONES
+}
+
+enum ReworkType {
+  DANO_TRANSPORTE
+  ERROR_MEDIDAS
+  SENTIDO_APERTURA
+  DIGITACION
+  CANTIDADES
+  OTRO
+}
+
+enum WarrantyStatus {
+  PENDIENTE
+  EN_PROCESO
+  PAZ_Y_SALVOS_FIRMADOS
+  DOCUMENTACION_ENVIADA
+  COBRADA
+}
+
+enum NotificationChannel {
+  CORREO
+  WHATSAPP
+}
+
+enum AssignmentRole {
+  SUPERVISOR
+  COTIZADOR
+  PLANEADOR
+  JEFE_TALLER
+}
+
+enum AppModule {
+  PROYECTOS
+  COTIZACIONES
+  CRM
+  CONTRATOS
+  POLIZAS
+  ANTICIPOS
+  COMPRAS
+  PRODUCCION
+  INSTALACION
+  ACTAS
+  GARANTIAS
+  ERRORES
+  NOTIFICACIONES
+  USUARIOS
+  EQUIPOS
+  DASHBOARD_GERENCIAL
+  AUDITORIA
+  PLANTILLAS
+}
+
+enum TaskStatus {
+  PENDIENTE
+  EN_PROGRESO
+  BLOQUEADA
+  COMPLETADA
+  CANCELADA
+}
+
+// ============================================================
+// Usuarios, equipos y permisos
+// ============================================================
+
+model User {
+  id                 String  @id @default(cuid())
+  name               String
+  email              String  @unique
+  phone              String? // WhatsApp
+  passwordHash       String
+  isActive           Boolean @default(true)
+  mustChangePassword Boolean @default(false) // true tras reset por Gerencia
+
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id])
+
+  permissions              UserPermission[]
+  installerMemberships     InstallerGroupMember[]
+  projectAssignments       ProjectAssignment[]
+  earlyStartAuthorizations Project[]              @relation("EarlyStartAuthorizer")
+  stageChanges             ProjectStageHistory[]  @relation("StageChangedBy")
+  quotesAsQuoter           Quote[]                @relation("QuoteQuoter")
+  quotesAssigned           Quote[]                @relation("QuoteAssigner")
+  quotesBudgetApproved     Quote[]                @relation("QuoteBudgetApprover")
+  quotesManagementApproved Quote[]                @relation("QuoteManagementApprover")
+  quoteContactLogs         QuoteContactLog[]
+  contractsReviewed        Contract[]             @relation("ContractReviewer")
+  advancesVerified         Advance[]              @relation("AdvanceVerifier")
+  actasVanos               ActaVanos[]            @relation("ActaVanosSupervisor")
+  remisionesSigned         Remision[]             @relation("RemisionSigner")
+  reworkErrorsResponsible  ReworkError[]          @relation("ReworkResponsible")
+  reworkErrorsReported     ReworkError[]          @relation("ReworkReporter")
+  actasEntrega             ActaEntrega[]          @relation("ActaEntregaSupervisor")
+  warrantiesResponsible    Warranty[]             @relation("WarrantyResponsible")
+  notifications            Notification[]
+  auditLogs                AuditLog[]
+  tasksAssigned            Task[]                 @relation("TaskAssignee")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Team {
+  id   String @id @default(cuid())
+  name String @unique
+
+  members     User[]
+  permissions TeamPermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Permisos base por departamento
+model TeamPermission {
+  id      String    @id @default(cuid())
+  teamId  String
+  team    Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  module  AppModule
+  canView Boolean   @default(false)
+  canEdit Boolean   @default(false)
+
+  @@unique([teamId, module])
+}
+
+// Override granular por usuario (gana sobre el permiso del equipo)
+model UserPermission {
+  id      String    @id @default(cuid())
+  userId  String
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module  AppModule
+  canView Boolean   @default(false)
+  canEdit Boolean   @default(false)
+
+  @@unique([userId, module])
+}
+
+// Los instaladores son Users: reciben notificaciones WhatsApp de sus tareas
+model InstallerGroup {
+  id   String @id @default(cuid())
+  name String @unique
+
+  members  InstallerGroupMember[]
+  projects ProjectInstallerGroup[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InstallerGroupMember {
+  id       String         @id @default(cuid())
+  groupId  String
+  group    InstallerGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime       @default(now())
+  isActive Boolean        @default(true)
+
+  @@unique([groupId, userId])
+}
+
+// ============================================================
+// Proyecto (núcleo) — un adicional es un Project hijo
+// ============================================================
+
+model Project {
+  id                       String        @id @default(cuid())
+  name                     String
+  clientName               String // cliente / constructora
+  market                   Market
+  company                  Company
+  currency                 Currency
+  costCenter               String? // centro de costo (Contabilidad lo crea)
+  contractAmount           Decimal?      @db.Decimal(14, 2)
+  advancePercent           Decimal?      @db.Decimal(5, 2)
+  warrantyRetentionPercent Decimal?      @db.Decimal(5, 2)
+  currentStage             ProjectStage  @default(COTIZACION)
+  status                   ProjectStatus @default(ACTIVO)
+  type                     ProjectType   @default(PRINCIPAL)
+  startDate                DateTime?
+  estimatedEndDate         DateTime?
+  actualEndDate            DateTime?
+  notes                    String?
+
+  // Adicionales: sub-proyecto vinculado al principal
+  parentProjectId String?
+  parentProject   Project?  @relation("ProjectChildren", fields: [parentProjectId], references: [id])
+  children        Project[] @relation("ProjectChildren")
+
+  // Excepción cliente de confianza: despiece/compras antes del anticipo
+  earlyStartWithoutAdvance Boolean @default(false)
+  earlyStartAuthorizedById String?
+  earlyStartAuthorizedBy   User?   @relation("EarlyStartAuthorizer", fields: [earlyStartAuthorizedById], references: [id])
+
+  assignments     ProjectAssignment[]
+  installerGroups ProjectInstallerGroup[]
+  stageHistory    ProjectStageHistory[]
+  quotes          Quote[]
+  contracts       Contract[]
+  policies        Policy[]
+  advances        Advance[]
+  purchases       Purchase[]
+  actasVanos      ActaVanos[]
+  dts             DT[]
+  remisiones      Remision[]
+  reworkErrors    ReworkError[]
+  actasCorte      ActaCorte[]
+  actasEntrega    ActaEntrega[]
+  actaCierre      ActaCierre?
+  warranty        Warranty?
+  notifications   Notification[]
+  tasks           Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([currentStage, status])
+  @@index([parentProjectId])
+}
+
+// Equipo nominal del proyecto: supervisor, cotizador, planeador, jefe de taller
+model ProjectAssignment {
+  id        String         @id @default(cuid())
+  projectId String
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  role      AssignmentRole
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId, role])
+}
+
+// Muchos-a-muchos: un grupo atiende varias obras; una obra puede rotar grupos
+model ProjectInstallerGroup {
+  id           String         @id @default(cuid())
+  projectId    String
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  groupId      String
+  group        InstallerGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignedAt   DateTime       @default(now())
+  unassignedAt DateTime?
+  isActive     Boolean        @default(true)
+
+  @@unique([projectId, groupId])
+}
+
+// Historial de transiciones de etapa (incluye retrocesos, con motivo)
+model ProjectStageHistory {
+  id          String        @id @default(cuid())
+  projectId   String
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromStage   ProjectStage?
+  toStage     ProjectStage
+  changedById String
+  changedBy   User          @relation("StageChangedBy", fields: [changedById], references: [id])
+  reason      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+// ============================================================
+// Etapa 1 — Cotización + mini-CRM
+// ============================================================
+
+model Quote {
+  id                         String      @id @default(cuid())
+  projectId                  String
+  project                    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  quoterId                   String
+  quoter                     User        @relation("QuoteQuoter", fields: [quoterId], references: [id])
+  assignedById               String?
+  assignedBy                 User?       @relation("QuoteAssigner", fields: [assignedById], references: [id])
+  amount                     Decimal     @db.Decimal(14, 2)
+  marginPercent              Decimal     @db.Decimal(5, 2) // % sobre precio de venta
+  status                     QuoteStatus @default(BORRADOR)
+  requiresManagementApproval Boolean     @default(false)
+
+  // Timestamps para analítica CRM (tiempos de entrega y respuesta)
+  assignedAt             DateTime?
+  completedAt            DateTime?
+  sentAt                 DateTime?
+  clientRespondedAt      DateTime?
+  budgetApprovedById     String?
+  budgetApprovedBy       User?     @relation("QuoteBudgetApprover", fields: [budgetApprovedById], references: [id])
+  budgetApprovedAt       DateTime?
+  managementApprovedById String?
+  managementApprovedBy   User?     @relation("QuoteManagementApprover", fields: [managementApprovedById], references: [id])
+  managementApprovedAt   DateTime?
+
+  contactLogs QuoteContactLog[]
+  rejection   QuoteRejection?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([quoterId])
+}
+
+// Bitácora CRM: cada contacto con el cliente
+model QuoteContactLog {
+  id          String         @id @default(cuid())
+  quoteId     String
+  quote       Quote          @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  channel     ContactChannel
+  notes       String
+  contactedAt DateTime       @default(now())
+
+  @@index([quoteId])
+}
+
+model QuoteRejection {
+  id      String               @id @default(cuid())
+  quoteId String               @unique
+  quote   Quote                @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  reason  QuoteRejectionReason
+  note    String?
+
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Etapa 2 — Contrato, pólizas, anticipo, compras
+// ============================================================
+
+model Contract {
+  id               String         @id @default(cuid())
+  projectId        String
+  project          Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status           ContractStatus @default(RECIBIDO)
+  observations     String? // rechazo con observaciones al cliente
+  deliveryTermDays Int? // plazo de entrega pactado
+  receivedAt       DateTime?
+  reviewedById     String?
+  reviewedBy       User?          @relation("ContractReviewer", fields: [reviewedById], references: [id])
+  signedAt         DateTime? // firma de Gerencia
+
+  policies Policy[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Policy {
+  id         String       @id @default(cuid())
+  projectId  String
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contractId String?
+  contract   Contract?    @relation(fields: [contractId], references: [id])
+  type       String // varía por constructora
+  insurer    String?
+  status     PolicyStatus @default(REQUERIDA)
+  value      Decimal?     @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Advance {
+  id           String        @id @default(cuid())
+  projectId    String
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  value        Decimal       @db.Decimal(14, 2)
+  status       AdvanceStatus @default(CUENTA_COBRO_GENERADA)
+  receiptUrl   String? // comprobante de transferencia
+  sentAt       DateTime?
+  depositedAt  DateTime?
+  verifiedAt   DateTime? // verificación en banco
+  verifiedById String?
+  verifiedBy   User?         @relation("AdvanceVerifier", fields: [verifiedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Purchase {
+  id                 String           @id @default(cuid())
+  projectId          String
+  project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  supplier           String
+  category           PurchaseCategory
+  obraPercent        Decimal          @db.Decimal(5, 2) // % de obra comprada
+  status             PurchaseStatus   @default(COTIZANDO)
+  orderedAt          DateTime?
+  expectedDeliveryAt DateTime?
+  actualDeliveryAt   DateTime? // esperada vs. real
+  notes              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+// ============================================================
+// Etapa 3 — Producción y despacho
+// ============================================================
+
+model ActaVanos {
+  id                    String   @id @default(cuid())
+  projectId             String
+  project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  supervisorId          String
+  supervisor            User     @relation("ActaVanosSupervisor", fields: [supervisorId], references: [id])
+  details               Json // vanos, medidas, sentidos de apertura
+  surveyedAt            DateTime // fecha de levantamiento
+  requiredDeliveryNotes String? // fechas de entrega requeridas (detalle)
+  priority              Priority @default(MEDIA)
+
+  dts DT[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+// Documento Técnico / orden de producción
+model DT {
+  id                   String     @id @default(cuid())
+  code                 String?    @unique
+  projectId            String
+  project              Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actaVanosId          String?
+  actaVanos            ActaVanos? @relation(fields: [actaVanosId], references: [id])
+  despiece             Json // material, cantidades, colores de vidrio, especificaciones
+  requiredDeliveryDate DateTime // SIEMPRE visible: punto de dolor clave
+  status               DTStatus   @default(PENDIENTE)
+  priority             Priority   @default(MEDIA)
+  queuedAt             DateTime?
+  productionStartedAt  DateTime?
+  finishedAt           DateTime?
+  remisionId           String?
+  remision             Remision?  @relation(fields: [remisionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, requiredDeliveryDate])
+  @@index([projectId])
+}
+
+// Remisión / salida de fábrica
+model Remision {
+  id           String         @id @default(cuid())
+  projectId    String
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  destination  String
+  dispatchedAt DateTime
+  status       RemisionStatus @default(DESPACHADO)
+  observations String?
+  signedById   String? // supervisor firma la recepción
+  signedBy     User?          @relation("RemisionSigner", fields: [signedById], references: [id])
+
+  dts          DT[]
+  reworkErrors ReworkError[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+// ============================================================
+// Errores y retrabajos (estadística por persona)
+// ============================================================
+
+model ReworkError {
+  id              String       @id @default(cuid())
+  projectId       String
+  project         Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type            ReworkType
+  responsibleId   String?
+  responsible     User?        @relation("ReworkResponsible", fields: [responsibleId], references: [id])
+  stage           ProjectStage
+  occurredAt      DateTime
+  costImpact      Decimal?     @db.Decimal(14, 2)
+  delayImpactDays Int?
+  description     String
+  remisionId      String? // si nació de una devolución
+  remision        Remision?    @relation(fields: [remisionId], references: [id])
+  reportedById    String
+  reportedBy      User         @relation("ReworkReporter", fields: [reportedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([responsibleId])
+}
+
+// ============================================================
+// Etapa 4 — Actas y facturación
+// ============================================================
+
+model ActaCorte {
+  id               String   @id @default(cuid())
+  projectId        String
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  section          String // torre / sección
+  invoicedValue    Decimal  @db.Decimal(14, 2)
+  cutDate          DateTime
+  advanceOffset    Decimal  @default(0) @db.Decimal(14, 2) // cruce de anticipo
+  retentionApplied Decimal  @default(0) @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model ActaEntrega {
+  id               String    @id @default(cuid())
+  projectId        String
+  project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  section          String
+  clientSignedName String?
+  clientSignedAt   DateTime?
+  supervisorId     String
+  supervisor       User      @relation("ActaEntregaSupervisor", fields: [supervisorId], references: [id])
+  deliveredAt      DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model ActaCierre {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  closedAt  DateTime
+
+  createdAt DateTime @default(now())
+}
+
+// ============================================================
+// Etapa 5 — Garantías
+// ============================================================
+
+model Warranty {
+  id                   String         @id @default(cuid())
+  projectId            String         @unique
+  project              Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  retentionValue       Decimal        @db.Decimal(14, 2)
+  workEndDate          DateTime?
+  estimatedProcessDate DateTime? // 3–6 meses post-obra: dispara alertas
+  status               WarrantyStatus @default(PENDIENTE)
+  responsibleId        String? // tesorería
+  responsible          User?          @relation("WarrantyResponsible", fields: [responsibleId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, estimatedProcessDate])
+}
+
+// ============================================================
+// Transversales
+// ============================================================
+
+// Registro/cola de notificaciones correo + WhatsApp
+model Notification {
+  id          String              @id @default(cuid())
+  recipientId String
+  recipient   User                @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  channel     NotificationChannel
+  event       String // p. ej. "cotizacion.aprobada"
+  title       String
+  body        String
+  projectId   String?
+  project     Project?            @relation(fields: [projectId], references: [id])
+  read        Boolean             @default(false)
+  sentAt      DateTime?
+  error       String? // fallo de envío, para reintentos
+
+  createdAt DateTime @default(now())
+
+  @@index([recipientId, read])
+}
+
+// Audit trail global: quién hizo qué y cuándo
+model AuditLog {
+  id       String  @id @default(cuid())
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id])
+  action   String // p. ej. "aprobar", "editar", "cambiar_etapa"
+  entity   String // p. ej. "Quote", "DT"
+  entityId String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+}
+
+// Tareas con dependencias y fechas plan/real (Gantt, carga de trabajo)
+model Task {
+  id           String        @id @default(cuid())
+  projectId    String
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  assigneeId   String?
+  assignee     User?         @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  stage        ProjectStage?
+  status       TaskStatus    @default(PENDIENTE)
+  priority     Priority      @default(MEDIA)
+  plannedStart DateTime?
+  plannedEnd   DateTime?
+  actualStart  DateTime?
+  actualEnd    DateTime?
+
+  dependencies TaskDependency[] @relation("TaskDeps")
+  dependents   TaskDependency[] @relation("TaskDependents")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([assigneeId, status])
+}
+
+// "El despiece no arranca sin Acta de Vanos"
+model TaskDependency {
+  id          String @id @default(cuid())
+  taskId      String
+  task        Task   @relation("TaskDeps", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnId String
+  dependsOn   Task   @relation("TaskDependents", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependsOnId])
+}
+
+// Plantillas de proyecto (etapas, tareas y roles preconfigurados)
+model ProjectTemplate {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  config      Json // se materializa a Task/ProjectAssignment al crear proyecto
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

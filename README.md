@@ -11,6 +11,18 @@ Aplicación web de gestión de proyectos para Vitralux Windows S.A.S. (Colombia)
 
 ## Desarrollo local
 
+### Base de datos (PostgreSQL portable)
+
+PostgreSQL 17 corre en modo portable en `C:\Users\Camilo Mejia\pgsql17` (sin servicio de Windows). Si no está corriendo, iniciarlo con:
+
+```powershell
+& "C:\Users\Camilo Mejia\pgsql17\pgsql\bin\pg_ctl.exe" -D "C:\Users\Camilo Mejia\pgsql17\data" -l "C:\Users\Camilo Mejia\pgsql17\postgres.log" start
+```
+
+Base de datos de desarrollo: `vitralux_pm` (usuario `postgres`).
+
+### Aplicación
+
 ```bash
 # Backend (puerto 4000)
 cd backend
