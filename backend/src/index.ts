@@ -4,6 +4,8 @@ import cors from "cors";
 import { authRouter } from "./routes/auth";
 import { usersRouter } from "./routes/users";
 import { teamsRouter } from "./routes/teams";
+import { projectsRouter } from "./routes/projects";
+import { installerGroupsRouter } from "./routes/installerGroups";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -19,6 +21,8 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/teams", teamsRouter);
+app.use("/api/projects", projectsRouter);
+app.use("/api/installer-groups", installerGroupsRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Recurso no encontrado." });

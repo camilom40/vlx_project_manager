@@ -37,7 +37,7 @@ PostgreSQL 17 **portable** en `C:\Users\Camilo Mejia\pgsql17` (la instalación c
 - [x] Fase 0 — Setup, estructura, git conectado al remoto.
 - [x] Fase 1 — Schema de Prisma completo (31 tablas), migración `init` aplicada, smoke test de conexión OK.
 - [x] Fase 2 — Auth (bcryptjs + JWT en localStorage), usuarios, equipos, permisos granulares (TeamPermission base + UserPermission override; Gerencia acceso total implícito), reset con contraseña temporal + cambio forzado. Seed: equipos del spec + admin `gerencia@vitralux.co`. UI: login, cambiar-password, layout con sidebar filtrada por permisos, páginas usuarios y equipos.
-- [ ] Fase 3 — Núcleo de proyectos: 5 etapas con retrocesos, adicionales (`parentProjectId`), asignación de equipo por proyecto.
+- [x] Fase 3 — Núcleo de proyectos: rutas `/api/projects` (CRUD, filtros, `POST /:id/etapa` con retroceso que exige motivo, `PUT /:id/equipo`) y `/api/installer-groups`. Adicionales validados (no adicional de adicional). UI: /proyectos (lista+filtros+crear), /proyectos/[id] (stepper 5 etapas, equipo, adicionales, historial, excepción sin anticipo), /grupos. Componentes compartidos en `components/ui.tsx`, formato en `lib/formato.ts`, etiquetas de todos los enums en `lib/etiquetas.ts`.
 - [ ] Fase 4 — Módulos por etapa: cotización + mini-CRM · contrato/pólizas/anticipo · producción (acta de vanos → DTs → remisión) · instalación/actas · garantías.
 - [ ] Fase 5 — Transversales: notificaciones correo + WhatsApp ("pasar el balón"), errores/retrabajos, carga de trabajo, dependencias, Gantt, audit trail, templates.
 - [ ] Fase 6 — Dashboards (gerencial, CRM, garantías) + identidad visual + verificación de español 100%.

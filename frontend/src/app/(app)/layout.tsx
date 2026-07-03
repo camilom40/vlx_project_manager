@@ -13,6 +13,7 @@ const NAV_ITEMS: { href: string; label: string; modulo: string }[] = [
   { href: "/garantias", label: "Garantías", modulo: "GARANTIAS" },
   { href: "/usuarios", label: "Usuarios", modulo: "USUARIOS" },
   { href: "/equipos", label: "Equipos", modulo: "EQUIPOS" },
+  { href: "/grupos", label: "Grupos de instaladores", modulo: "EQUIPOS" },
 ];
 
 export default function AppLayout({
