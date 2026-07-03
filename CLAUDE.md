@@ -14,7 +14,7 @@ App web de gestión de proyectos para Vitralux Windows S.A.S. (Colombia) y VLX W
 
 ## Identidad visual (extraída del brand book)
 - **Colores:** azul principal `#4677BA` · azul oscuro `#32386D` · naranja acento `#F29714` (el PDF lista HEX `#DC9129` pero su RGB 242,151,20 y el swatch corresponden a `#F29714`; usar `#DC9129` como variante oscura del acento) · azul claro `#D3E9FB` · blanco `#FFFFFF`.
-- **Tipografía:** Galano Grotesque Bold (títulos) y Gotham (cuerpo) — comerciales; en la app se usan alternativas de Google Fonts visualmente cercanas (títulos: Poppins; cuerpo: Montserrat) hasta tener licencia de las originales.
+- **Tipografía (decisión del usuario, 2026-07-03):** NO usar las fuentes del brand book (Galano Grotesque / Gotham). Usar tipografía moderna estilo Apple/macOS: **Geist Sans** (UI) y **Geist Mono** (datos numéricos/tabulares), ya integradas vía `next/font`.
 - **Logo:** isologo indivisible (texto + marco), con área de reserva; prohibido: sombras, contornos, distorsión, colores fuera de paleta. Tono de marca: elegante, fuerte, confiable, moderna.
 
 ## Estructura
