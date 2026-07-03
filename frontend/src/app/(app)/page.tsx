@@ -8,6 +8,8 @@ import { ESTADOS_ANTICIPO, ESTADOS_GARANTIA, ETAPAS } from "@/lib/etiquetas";
 import { fecha, moneda, porcentaje } from "@/lib/formato";
 import {
   Badge,
+  Esqueleto,
+  EsqueletoTabla,
   EstadoVacio,
   MensajeError,
   Tarjeta,
@@ -137,6 +139,22 @@ export default function InicioPage() {
         <MensajeError>{error}</MensajeError>
       </div>
 
+      {!data && !error && (
+        <>
+          <div className="mt-5 grid grid-cols-3 gap-4 lg:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="glass rounded-2xl p-4">
+                <Esqueleto className="h-3 w-3/4" />
+                <Esqueleto className="mt-3 h-8 w-12" />
+              </div>
+            ))}
+          </div>
+          <Tarjeta className="mt-6 overflow-hidden">
+            <EsqueletoTabla filas={4} />
+          </Tarjeta>
+        </>
+      )}
+
       {data && (
         <>
           {/* KPIs (marcos de vidrio) */}
@@ -188,8 +206,8 @@ export default function InicioPage() {
                 <tr className="border-b border-border bg-background/60 text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3">Proyecto</th>
                   <th className="px-4 py-3">Etapa</th>
-                  <th className="px-4 py-3">Contrato</th>
-                  <th className="px-4 py-3">Facturado</th>
+                  <th className="px-4 py-3 text-right">Contrato</th>
+                  <th className="px-4 py-3 text-right">Facturado</th>
                   <th className="px-4 py-3 w-56">Avance</th>
                 </tr>
               </thead>
@@ -217,10 +235,10 @@ export default function InicioPage() {
                     <td className="px-4 py-3">
                       <Badge tono={tonoEtapa(p.etapa)}>{ETAPAS[p.etapa]}</Badge>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs">
+                    <td className="px-4 py-3 text-right font-mono text-xs">
                       {moneda(p.monto, p.moneda)}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs">
+                    <td className="px-4 py-3 text-right font-mono text-xs">
                       {moneda(p.facturado, p.moneda)}
                     </td>
                     <td className="px-4 py-3">

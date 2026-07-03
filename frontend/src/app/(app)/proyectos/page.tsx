@@ -17,6 +17,7 @@ import {
   BotonSecundario,
   Campo,
   Entrada,
+  EsqueletoTabla,
   EstadoVacio,
   MensajeError,
   Selector,
@@ -43,6 +44,7 @@ interface ProyectoResumen {
 export default function ProyectosPage() {
   const { puede } = useAuth();
   const [proyectos, setProyectos] = useState<ProyectoResumen[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [filtroEtapa, setFiltroEtapa] = useState("");
   const [filtroTipo, setFiltroTipo] = useState("");
   const [buscar, setBuscar] = useState("");
@@ -67,6 +69,8 @@ export default function ProyectosPage() {
       setProyectos(data.projects);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar.");
+    } finally {
+      setCargando(false);
     }
   }, [filtroEtapa, filtroTipo, buscar]);
 
@@ -349,6 +353,9 @@ export default function ProyectosPage() {
       </div>
 
       <Tarjeta className="mt-4 overflow-hidden">
+        {cargando ? (
+          <EsqueletoTabla filas={5} />
+        ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-background/60 text-left text-xs uppercase tracking-wide text-muted">
@@ -422,6 +429,7 @@ export default function ProyectosPage() {
             )}
           </tbody>
         </table>
+        )}
       </Tarjeta>
     </div>
   );

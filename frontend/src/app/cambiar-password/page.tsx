@@ -48,8 +48,8 @@ export default function CambiarPasswordPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-gradient-to-br from-brand-dark via-brand to-brand-light p-6">
-      <div className="w-full max-w-sm rounded-2xl bg-surface/90 p-8 shadow-2xl backdrop-blur-xl border border-white/20">
+    <main className="flex flex-1 items-center justify-center p-6">
+      <div className="glass animar-entrada w-full max-w-sm rounded-2xl p-8">
         <h1 className="text-lg font-semibold">Cambiar contraseña</h1>
         <p className="mt-1 mb-6 text-sm text-muted">
           {forzado

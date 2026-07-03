@@ -98,8 +98,9 @@ export default function AppLayout({
             src="/logo-vitralux.png"
             alt="Vitralux Windows"
             width={150}
-            height={46}
+            height={45}
             priority
+            unoptimized
             className="dark:brightness-0 dark:invert-[0.92]"
           />
           <span className="mt-2 block text-[10px] font-medium tracking-[0.3em] text-brand">
@@ -144,16 +145,31 @@ export default function AppLayout({
           ))}
         </nav>
         <div className="border-t border-border/60 p-4">
-          <p className="truncate text-sm font-medium">{usuario.name}</p>
-          <p className="truncate text-xs text-muted">
-            {usuario.teamName ?? "Sin equipo"}
-          </p>
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white"
+            >
+              {usuario.name
+                .split(" ")
+                .slice(0, 2)
+                .map((p) => p[0])
+                .join("")
+                .toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{usuario.name}</p>
+              <p className="truncate text-xs text-muted">
+                {usuario.teamName ?? "Sin equipo"}
+              </p>
+            </div>
+          </div>
           <button
             onClick={async () => {
               await cerrarSesion();
               router.replace("/login");
             }}
-            className="mt-3 w-full rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted transition hover:border-danger hover:text-danger"
+            className="mt-3 w-full rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted transition duration-150 hover:border-danger hover:text-danger active:scale-[0.98]"
           >
             Cerrar sesión
           </button>

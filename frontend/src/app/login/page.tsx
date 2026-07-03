@@ -28,15 +28,16 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-gradient-to-br from-brand-dark via-brand to-brand-light p-6">
-      <div className="w-full max-w-sm rounded-2xl bg-surface/90 p-8 shadow-2xl backdrop-blur-xl border border-white/20">
+    <main className="flex flex-1 items-center justify-center p-6">
+      <div className="glass animar-entrada w-full max-w-sm rounded-2xl p-8">
         <div className="mb-8 text-center">
           <Image
             src="/logo-vitralux.png"
             alt="Vitralux Windows"
             width={220}
-            height={67}
+            height={65}
             priority
+            unoptimized
             className="mx-auto dark:brightness-0 dark:invert-[0.92]"
           />
           <p className="mt-4 text-sm text-muted">Gestor de Proyectos</p>
@@ -83,7 +84,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={enviando}
-            className="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
+            className="w-full rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-150 hover:bg-brand-dark active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
           >
             {enviando ? "Ingresando..." : "Ingresar"}
           </button>

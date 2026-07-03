@@ -230,14 +230,21 @@ export default function ProyectoDetallePage() {
         <MensajeError>{error}</MensajeError>
       </div>
 
-      {/* Línea de etapas */}
-      <Tarjeta className="mt-4 p-5">
-        <div className="flex items-center gap-1">
+      {/* Línea de etapas: progreso conectado, clic para mover */}
+      <Tarjeta className="mt-4 px-6 pb-4 pt-5">
+        <div className="flex items-start">
           {ORDEN_ETAPAS.map((etapa, i) => {
             const activa = etapa === proyecto.currentStage;
             const pasada = i < idxActual;
             return (
-              <div key={etapa} className="flex flex-1 items-center gap-1">
+              <div key={etapa} className="flex flex-1 items-start">
+                {i > 0 && (
+                  <div
+                    className={`mt-[13px] h-0.5 flex-1 rounded-full transition-colors duration-300 ${
+                      i <= idxActual ? "bg-brand" : "bg-border"
+                    }`}
+                  />
+                )}
                 <button
                   disabled={!puedeEditar || activa}
                   onClick={() => setMoviendo(etapa)}
@@ -248,19 +255,49 @@ export default function ProyectoDetallePage() {
                         ? `Mover a ${ETAPAS[etapa]}`
                         : undefined
                   }
-                  className={`w-full rounded-lg px-2 py-2 text-center text-xs font-medium transition ${
-                    activa
-                      ? "bg-brand text-white shadow"
-                      : pasada
-                        ? "bg-brand-light/60 text-brand-dark dark:text-foreground"
-                        : "bg-background text-muted hover:bg-brand-light/40"
-                  } ${!puedeEditar || activa ? "cursor-default" : "cursor-pointer"}`}
+                  className={`group flex flex-col items-center gap-1.5 px-2 ${
+                    !puedeEditar || activa ? "cursor-default" : "cursor-pointer"
+                  }`}
                 >
-                  {ETAPAS[etapa]}
+                  <span
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition duration-150 ${
+                      activa
+                        ? "bg-brand text-white shadow-md ring-4 ring-brand/20"
+                        : pasada
+                          ? "bg-brand text-white"
+                          : "border-2 border-border bg-surface text-muted group-hover:border-brand group-hover:text-brand"
+                    }`}
+                  >
+                    {pasada ? (
+                      <svg
+                        viewBox="0 0 12 12"
+                        className="h-3 w-3"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                      >
+                        <path d="M2 6.5 4.8 9 10 3.5" />
+                      </svg>
+                    ) : (
+                      i + 1
+                    )}
+                  </span>
+                  <span
+                    className={`whitespace-nowrap text-xs font-medium ${
+                      activa
+                        ? "text-brand"
+                        : pasada
+                          ? "text-foreground/80"
+                          : "text-muted group-hover:text-brand"
+                    }`}
+                  >
+                    {ETAPAS[etapa]}
+                  </span>
                 </button>
-                {i < ORDEN_ETAPAS.length - 1 && (
-                  <span className="text-border">›</span>
-                )}
+                {i === ORDEN_ETAPAS.length - 1 && null}
               </div>
             );
           })}

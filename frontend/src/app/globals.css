@@ -117,3 +117,39 @@ body {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
+
+/* Números tabulares: las cifras se alinean en columna (herramienta de números) */
+.tnum,
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Esqueletos de carga (en vez de pantallas vacías o spinners) */
+@keyframes pulso-esqueleto {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.esqueleto {
+  border-radius: 0.5rem;
+  background: color-mix(in oklab, var(--muted) 14%, transparent);
+  animation: pulso-esqueleto 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto {
+    animation: none;
+  }
+}
+
+/* Barra de desplazamiento discreta y tintada hacia la marca */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--brand) 30%, transparent)
+    transparent;
+}

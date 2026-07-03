@@ -31,6 +31,8 @@ Regla: el naranja y el rojo se reservan para lo que exige acción (atrasos, venc
 
 - **Geist Sans** (`--font-geist-sans`, vía `next/font`): toda la UI. Equivalente moderno de SF Pro (decisión del usuario: NO usar las fuentes del brand book Galano/Gotham).
 - **Geist Mono** (`--font-geist-mono`): cifras de dinero, códigos de DT, datos tabulares que se comparan en columna.
+- `font-variant-numeric: tabular-nums` global en tablas (y utilidad `.tnum`); columnas de dinero alineadas a la derecha para comparación vertical.
+- Logo: `frontend/public/logo-vitralux.png` a 440px (2x del uso máximo), renderizado con `unoptimized` en `next/image` — el optimizador adelgazaba las líneas finas del marco del isologo y lo hacía ver roto.
 - Jerarquía: títulos de página `text-2xl font-semibold tracking-tight`; secciones `font-semibold`; encabezados de tabla `text-xs uppercase tracking-wide text-muted`; cuerpo `text-sm`.
 
 ## Components
@@ -42,6 +44,9 @@ Primitivas en `frontend/src/components/ui.tsx` — usar SIEMPRE estas en vez de 
 - `Badge` con tonos semánticos (`gris|azul|azulOscuro|verde|rojo|naranja`) + `tonoEtapa()` para las 5 etapas del proyecto.
 - `Tarjeta` (superficie sólida con borde) para datos; clase `.glass` solo para marcos/KPIs.
 - `MensajeError`, `EstadoVacio` — estados vacíos que enseñan qué hacer, en español.
+- `Esqueleto` / `EsqueletoTabla` — estados de carga (clase `.esqueleto`, pulso suave, respeta reduced-motion). Nunca mostrar "No hay datos" mientras carga.
+- Stepper de etapas (detalle de proyecto): círculos numerados conectados por línea de progreso; completada = relleno brand con check SVG, actual = anillo `ring-brand/20`, futura = borde muted con hover brand.
+- Botones: estados completos — hover, focus-visible (anillo global), `active:scale-[0.98]`, disabled con `pointer-events-none`; transiciones a 150ms.
 - Etiquetas de enums centralizadas en `frontend/src/lib/etiquetas.ts`; formato de moneda/fecha/porcentaje en `frontend/src/lib/formato.ts` (es-CO / en-US según divisa).
 
 ## Layout

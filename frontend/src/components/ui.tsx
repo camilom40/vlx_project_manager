@@ -51,7 +51,7 @@ export function BotonPrimario(props: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...rest}
-      className={`rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60 ${className}`}
+      className={`rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition duration-150 hover:bg-brand-dark active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60 ${className}`}
     />
   );
 }
@@ -63,8 +63,28 @@ export function BotonSecundario(
   return (
     <button
       {...rest}
-      className={`rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 transition hover:border-brand hover:text-brand disabled:opacity-60 ${className}`}
+      className={`rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground/80 transition duration-150 hover:border-brand hover:text-brand active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60 ${className}`}
     />
+  );
+}
+
+export function Esqueleto({ className = "" }: { className?: string }) {
+  return <div aria-hidden className={`esqueleto ${className}`} />;
+}
+
+/** Esqueleto de tabla: filas fantasma mientras cargan los datos reales. */
+export function EsqueletoTabla({ filas = 4 }: { filas?: number }) {
+  return (
+    <div className="space-y-2 p-4">
+      {Array.from({ length: filas }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4">
+          <Esqueleto className="h-4 w-1/3" />
+          <Esqueleto className="h-4 w-1/5" />
+          <Esqueleto className="h-4 w-1/6" />
+          <Esqueleto className="h-4 flex-1" />
+        </div>
+      ))}
+    </div>
   );
 }
 
