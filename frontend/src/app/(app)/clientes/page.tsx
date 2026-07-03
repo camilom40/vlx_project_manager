@@ -8,6 +8,7 @@ import {
   BotonPrimario,
   BotonSecundario,
   Campo,
+  Desplegable,
   Entrada,
   EstadoVacio,
   MensajeError,
@@ -123,7 +124,7 @@ export default function ClientesPage() {
         )}
       </div>
 
-      {(mostrarForm || editando) && (
+      <Desplegable abierto={mostrarForm || Boolean(editando)}>
         <form
           onSubmit={guardar}
           className="mt-4 grid grid-cols-3 gap-4 rounded-xl border border-border bg-surface p-5"
@@ -189,7 +190,7 @@ export default function ClientesPage() {
             </BotonSecundario>
           </div>
         </form>
-      )}
+      </Desplegable>
 
       <div className="mt-4">
         <Entrada

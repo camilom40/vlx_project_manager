@@ -59,4 +59,15 @@ Primitivas en `frontend/src/components/ui.tsx` — usar SIEMPRE estas en vez de 
 
 ## Motion
 
-Una sola entrada suave por navegación (`entrada-suave`: 350ms, cubic-bezier(0.22,1,0.36,1), translateY 6px). Micro-transiciones en hover (`transition` de Tailwind, `hover:-translate-y-0.5` en KPIs). Sin bounce, sin animar propiedades de layout. `prefers-reduced-motion` desactiva la entrada.
+El movimiento comunica estado; 150–700ms, ease-out exponencial o springs de `motion` (librería instalada, `motion/react`). `MotionConfig reducedMotion="user"` global en AuthProvider + guardas CSS: **todo** respeta `prefers-reduced-motion`.
+
+- Entrada por navegación: `animar-entrada` (350ms, translateY 6px).
+- Filas de tabla y `.lista-stagger`: cascada de 20–40ms entre elementos (global, automático).
+- KPIs: `ContadorAnimado` (cuenta hasta el valor, ease-out-quart, 700ms, una vez).
+- Barras: `BarraProgreso` crece hasta su % al montar; `.barra-gantt` se dibuja de izquierda a derecha con stagger.
+- Stepper de etapas: línea de progreso con spring (`scaleX`), check que se dibuja (`pathLength`), pop en la etapa actual.
+- Formularios de creación: `Desplegable` (spring stiffness 320 / damping 34, height auto).
+- Badge rojo: `.pulso-alerta` respira 2 veces al aparecer y se calma.
+- Badge de notificaciones: pop con spring al cambiar el número.
+- Login: tarjeta con entrada spring + reflejo especular que sigue al cursor (radial-gradient sobre `--mx/--my`); logo con entrada retardada 120ms.
+- Sin bounce/elastic, sin animar propiedades de layout, sin coreografías de carga.

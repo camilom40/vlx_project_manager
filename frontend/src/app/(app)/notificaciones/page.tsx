@@ -62,7 +62,7 @@ export default function NotificacionesPage() {
         <MensajeError>{error}</MensajeError>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="lista-stagger mt-4 space-y-2">
         {notificaciones.length === 0 && (
           <EstadoVacio>No tienes notificaciones.</EstadoVacio>
         )}

@@ -16,6 +16,7 @@ import {
   BotonPrimario,
   BotonSecundario,
   Campo,
+  Desplegable,
   Entrada,
   EsqueletoTabla,
   EstadoVacio,
@@ -176,7 +177,7 @@ export default function ProyectosPage() {
         <MensajeError>{error}</MensajeError>
       </div>
 
-      {mostrarForm && (
+      <Desplegable abierto={mostrarForm}>
         <form
           onSubmit={crear}
           className="mt-4 grid grid-cols-3 gap-4 rounded-xl border border-border bg-surface p-5"
@@ -317,7 +318,7 @@ export default function ProyectosPage() {
             </BotonSecundario>
           </div>
         </form>
-      )}
+      </Desplegable>
 
       <div className="mt-4 flex flex-wrap gap-3">
         <Entrada

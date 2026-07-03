@@ -153,3 +153,76 @@ table {
   scrollbar-color: color-mix(in oklab, var(--brand) 30%, transparent)
     transparent;
 }
+
+/* ============================================================
+   Motion: el movimiento comunica estado (150–700ms, ease-out).
+   Todo respeta prefers-reduced-motion.
+   ============================================================ */
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Filas de tabla en cascada al aparecer (solo las primeras 12 escalonan) */
+  @keyframes entrada-fila {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+
+  tbody tr {
+    animation: entrada-fila 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 240ms;
+  }
+
+  tbody tr:nth-child(1) { animation-delay: 0ms; }
+  tbody tr:nth-child(2) { animation-delay: 20ms; }
+  tbody tr:nth-child(3) { animation-delay: 40ms; }
+  tbody tr:nth-child(4) { animation-delay: 60ms; }
+  tbody tr:nth-child(5) { animation-delay: 80ms; }
+  tbody tr:nth-child(6) { animation-delay: 100ms; }
+  tbody tr:nth-child(7) { animation-delay: 120ms; }
+  tbody tr:nth-child(8) { animation-delay: 140ms; }
+  tbody tr:nth-child(9) { animation-delay: 160ms; }
+  tbody tr:nth-child(10) { animation-delay: 180ms; }
+  tbody tr:nth-child(11) { animation-delay: 200ms; }
+  tbody tr:nth-child(12) { animation-delay: 220ms; }
+
+  /* Listas de tarjetas (notificaciones, carga) en cascada */
+  .lista-stagger > * {
+    animation: entrada-fila 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .lista-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .lista-stagger > *:nth-child(2) { animation-delay: 40ms; }
+  .lista-stagger > *:nth-child(3) { animation-delay: 80ms; }
+  .lista-stagger > *:nth-child(4) { animation-delay: 120ms; }
+  .lista-stagger > *:nth-child(5) { animation-delay: 160ms; }
+  .lista-stagger > *:nth-child(6) { animation-delay: 200ms; }
+  .lista-stagger > *:nth-child(n + 7) { animation-delay: 240ms; }
+
+  /* Alerta que respira dos veces al aparecer y se calma */
+  @keyframes pulso-alerta {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.06);
+    }
+  }
+
+  .pulso-alerta {
+    animation: pulso-alerta 0.9s ease-in-out 2;
+  }
+
+  /* Barras del Gantt que se dibujan de izquierda a derecha */
+  @keyframes crecer-x {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  .barra-gantt {
+    transform-origin: left;
+    animation: crecer-x 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}

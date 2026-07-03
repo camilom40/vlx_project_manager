@@ -1,6 +1,14 @@
 "use client";
 
-import { ButtonHTMLAttributes, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+  useEffect,
+  useState,
+} from "react";
 
 // Primitivas de UI compartidas — consistencia visual en toda la app
 
@@ -22,10 +30,94 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${TONOS[tono] ?? TONOS.gris}`}
+      className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${TONOS[tono] ?? TONOS.gris} ${
+        tono === "rojo" ? "pulso-alerta" : ""
+      }`}
     >
       {children}
     </span>
+  );
+}
+
+/** Número que cuenta hasta su valor al aparecer (una sola vez). */
+export function ContadorAnimado({ valor }: { valor: number }) {
+  const [mostrado, setMostrado] = useState(0);
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      setMostrado(valor);
+      return;
+    }
+    let raf = 0;
+    const inicio = performance.now();
+    const duracion = 700;
+    const paso = (t: number) => {
+      const p = Math.min(1, (t - inicio) / duracion);
+      const suavizado = 1 - Math.pow(1 - p, 4); // ease-out-quart
+      setMostrado(Math.round(valor * suavizado));
+      if (p < 1) raf = requestAnimationFrame(paso);
+    };
+    raf = requestAnimationFrame(paso);
+    return () => cancelAnimationFrame(raf);
+  }, [valor]);
+  return <>{mostrado}</>;
+}
+
+/** Barra de progreso que crece hasta su porcentaje al montarse. */
+export function BarraProgreso({
+  pct,
+  tono = "brand",
+}: {
+  pct: number;
+  tono?: "brand" | "success" | "accent" | "danger";
+}) {
+  const [ancho, setAncho] = useState(0);
+  useEffect(() => {
+    const id = requestAnimationFrame(() =>
+      setAncho(Math.max(0, Math.min(100, pct))),
+    );
+    return () => cancelAnimationFrame(id);
+  }, [pct]);
+  const color = {
+    brand: "bg-brand",
+    success: "bg-success",
+    accent: "bg-accent",
+    danger: "bg-danger",
+  }[tono];
+  return (
+    <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
+      <div
+        className={`h-full rounded-full ${color} transition-[width] duration-700 ease-out motion-reduce:transition-none`}
+        style={{ width: `${ancho}%` }}
+      />
+    </div>
+  );
+}
+
+/** Panel colapsable con física de resorte (formularios de creación, etc.). */
+export function Desplegable({
+  abierto,
+  children,
+}: {
+  abierto: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <AnimatePresence initial={false}>
+      {abierto && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 34 }}
+          style={{ overflow: "hidden" }}
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

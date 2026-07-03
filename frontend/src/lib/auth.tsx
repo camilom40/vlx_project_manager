@@ -1,5 +1,6 @@
 "use client";
 
+import { MotionConfig } from "motion/react";
 import {
   createContext,
   useCallback,
@@ -117,7 +118,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         puede,
       }}
     >
-      {children}
+      {/* Las animaciones de motion respetan prefers-reduced-motion del sistema */}
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
     </AuthContext.Provider>
   );
 }

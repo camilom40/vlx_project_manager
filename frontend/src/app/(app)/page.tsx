@@ -8,6 +8,8 @@ import { ESTADOS_ANTICIPO, ESTADOS_GARANTIA, ETAPAS } from "@/lib/etiquetas";
 import { fecha, moneda, porcentaje } from "@/lib/formato";
 import {
   Badge,
+  BarraProgreso,
+  ContadorAnimado,
   Esqueleto,
   EsqueletoTabla,
   EstadoVacio,
@@ -128,12 +130,7 @@ function FilaProyecto({
       <td className="px-4 py-3">
         {p.porcentaje !== null ? (
           <div className="flex items-center gap-2">
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
-              <div
-                className="h-full rounded-full bg-brand"
-                style={{ width: `${Math.min(100, p.porcentaje)}%` }}
-              />
-            </div>
+            <BarraProgreso pct={p.porcentaje} />
             <span className="w-12 text-right text-xs font-semibold">
               {porcentaje(p.porcentaje)}
             </span>
@@ -167,7 +164,7 @@ function KPI({
           alerta ? "text-danger" : ""
         }`}
       >
-        {valor}
+        {typeof valor === "number" ? <ContadorAnimado valor={valor} /> : valor}
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -133,9 +134,19 @@ export default function AppLayout({
                     >
                       {item.label}
                       {item.href === "/notificaciones" && sinLeer > 0 && (
-                        <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white">
+                        <motion.span
+                          key={sinLeer}
+                          initial={{ scale: 0.5 }}
+                          animate={{ scale: 1 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 500,
+                            damping: 18,
+                          }}
+                          className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white"
+                        >
                           {sinLeer > 99 ? "99+" : sinLeer}
-                        </span>
+                        </motion.span>
                       )}
                     </Link>
                   );

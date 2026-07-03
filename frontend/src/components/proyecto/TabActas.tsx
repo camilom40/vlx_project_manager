@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { fecha, moneda, porcentaje } from "@/lib/formato";
 import {
   Badge,
+  BarraProgreso,
   BotonPrimario,
   Campo,
   Entrada,
@@ -160,11 +161,8 @@ export function TabActas({
                   {porcentaje(fact.porcentaje)}
                 </span>
               </div>
-              <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-background">
-                <div
-                  className="h-full rounded-full bg-brand transition-all"
-                  style={{ width: `${Math.min(100, fact.porcentaje)}%` }}
-                />
+              <div className="mt-1 flex">
+                <BarraProgreso pct={fact.porcentaje} />
               </div>
             </div>
           )}

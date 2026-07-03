@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
@@ -239,11 +240,14 @@ export default function ProyectoDetallePage() {
             return (
               <div key={etapa} className="flex flex-1 items-start">
                 {i > 0 && (
-                  <div
-                    className={`mt-[13px] h-0.5 flex-1 rounded-full transition-colors duration-300 ${
-                      i <= idxActual ? "bg-brand" : "bg-border"
-                    }`}
-                  />
+                  <div className="mt-[13px] h-0.5 flex-1 overflow-hidden rounded-full bg-border">
+                    <motion.div
+                      className="h-full w-full origin-left rounded-full bg-brand"
+                      initial={false}
+                      animate={{ scaleX: i <= idxActual ? 1 : 0 }}
+                      transition={{ type: "spring", stiffness: 240, damping: 30 }}
+                    />
+                  </div>
                 )}
                 <button
                   disabled={!puedeEditar || activa}
@@ -259,13 +263,17 @@ export default function ProyectoDetallePage() {
                     !puedeEditar || activa ? "cursor-default" : "cursor-pointer"
                   }`}
                 >
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition duration-150 ${
+                  <motion.span
+                    key={activa ? `activa-${proyecto.currentStage}` : etapa}
+                    initial={activa ? { scale: 0.6 } : false}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                       activa
                         ? "bg-brand text-white shadow-md ring-4 ring-brand/20"
                         : pasada
                           ? "bg-brand text-white"
-                          : "border-2 border-border bg-surface text-muted group-hover:border-brand group-hover:text-brand"
+                          : "border-2 border-border bg-surface text-muted transition-colors duration-150 group-hover:border-brand group-hover:text-brand"
                     }`}
                   >
                     {pasada ? (
@@ -279,12 +287,17 @@ export default function ProyectoDetallePage() {
                         strokeLinejoin="round"
                         aria-hidden
                       >
-                        <path d="M2 6.5 4.8 9 10 3.5" />
+                        <motion.path
+                          d="M2 6.5 4.8 9 10 3.5"
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 0.35, ease: "easeOut" }}
+                        />
                       </svg>
                     ) : (
                       i + 1
                     )}
-                  </span>
+                  </motion.span>
                   <span
                     className={`whitespace-nowrap text-xs font-medium ${
                       activa

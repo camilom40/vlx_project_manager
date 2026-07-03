@@ -1,8 +1,9 @@
 "use client";
 
+import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -12,6 +13,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const tarjetaRef = useRef<HTMLDivElement>(null);
+
+  // Brillo especular del vidrio que sigue suavemente al mouse
+  function seguirMouse(e: React.MouseEvent<HTMLDivElement>) {
+    const el = tarjetaRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", `${e.clientX - r.left}px`);
+    el.style.setProperty("--my", `${e.clientY - r.top}px`);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -29,17 +40,40 @@ export default function LoginPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center p-6">
-      <div className="glass animar-entrada w-full max-w-sm rounded-2xl p-8">
+      <motion.div
+        ref={tarjetaRef}
+        onMouseMove={seguirMouse}
+        initial={{ opacity: 0, y: 14, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 180, damping: 24 }}
+        className="glass relative w-full max-w-sm overflow-hidden rounded-2xl p-8"
+      >
+        {/* Reflejo del vidrio que sigue al cursor */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-70"
+          style={{
+            background:
+              "radial-gradient(260px circle at var(--mx, 50%) var(--my, -20%), color-mix(in oklab, var(--brand-light) 45%, transparent), transparent 70%)",
+          }}
+        />
+        <div className="relative">
         <div className="mb-8 text-center">
-          <Image
-            src="/logo-vitralux.png"
-            alt="Vitralux Windows"
-            width={220}
-            height={65}
-            priority
-            unoptimized
-            className="mx-auto dark:brightness-0 dark:invert-[0.92]"
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12, duration: 0.45, ease: "easeOut" }}
+          >
+            <Image
+              src="/logo-vitralux.png"
+              alt="Vitralux Windows"
+              width={220}
+              height={65}
+              priority
+              unoptimized
+              className="mx-auto dark:brightness-0 dark:invert-[0.92]"
+            />
+          </motion.div>
           <p className="mt-4 text-sm text-muted">Gestor de Proyectos</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
@@ -89,7 +123,8 @@ export default function LoginPage() {
             {enviando ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
-      </div>
+        </div>
+      </motion.div>
     </main>
   );
 }

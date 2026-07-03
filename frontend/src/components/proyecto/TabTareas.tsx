@@ -248,7 +248,7 @@ export function TabTareas({
                 Línea de tiempo (planeado en azul, real en verde)
               </h3>
               <div className="mt-3 space-y-2">
-                {conFechas.map((t) => {
+                {conFechas.map((t, idx) => {
                   const izq =
                     ((new Date(t.plannedStart!).getTime() - minT) / rango) * 100;
                   const ancho = Math.max(
@@ -280,16 +280,21 @@ export function TabTareas({
                       </span>
                       <div className="relative h-5 rounded bg-background">
                         <div
-                          className="absolute top-0 h-2.5 rounded-full bg-brand/70"
-                          style={{ left: `${izq}%`, width: `${ancho}%` }}
+                          className="barra-gantt absolute top-0 h-2.5 rounded-full bg-brand/70"
+                          style={{
+                            left: `${izq}%`,
+                            width: `${ancho}%`,
+                            animationDelay: `${idx * 60}ms`,
+                          }}
                           title={`Planeado: ${fecha(t.plannedStart)} → ${fecha(t.plannedEnd)}`}
                         />
                         {realIzq !== null && realAncho !== null && (
                           <div
-                            className="absolute bottom-0 h-2.5 rounded-full bg-success/80"
+                            className="barra-gantt absolute bottom-0 h-2.5 rounded-full bg-success/80"
                             style={{
                               left: `${Math.max(0, realIzq)}%`,
                               width: `${realAncho}%`,
+                              animationDelay: `${idx * 60 + 120}ms`,
                             }}
                             title={`Real: ${fecha(t.actualStart)} → ${t.actualEnd ? fecha(t.actualEnd) : "en curso"}`}
                           />
