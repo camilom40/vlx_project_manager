@@ -24,14 +24,23 @@ export async function api<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch {
+    // Error de red: el navegador lanza "Failed to fetch" (en inglés)
+    throw new ApiError(
+      0,
+      "No se pudo conectar con el servidor. Verifica que el backend esté encendido e intenta de nuevo.",
+    );
+  }
   let body: unknown = null;
   try {
     body = await res.json();
