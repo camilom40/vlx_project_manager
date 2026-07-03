@@ -1,19 +1,27 @@
 @import "tailwindcss";
 
-/* Identidad Vitralux (brand book) — tipografía Geist (estilo Apple) */
+/* ============================================================
+   Identidad Vitralux (brand book) · liquid glass tipo Apple
+   Glass SOLO en marcos (sidebar, KPIs); data densa sobre sólido.
+   Tipografía Geist. Neutros tintados hacia el azul de marca.
+   ============================================================ */
+
 :root {
-  --background: #f4f7fb;
-  --foreground: #16233a;
-  --surface: #ffffff;
-  --brand: #4677ba; /* azul principal */
-  --brand-dark: #32386d; /* azul oscuro */
-  --brand-light: #d3e9fb; /* azul claro */
-  --accent: #f29714; /* naranja acento */
+  --background: #eef3f9;
+  --foreground: #1a2740;
+  --surface: #fdfeff;
+  --brand: #4677ba;
+  --brand-dark: #32386d;
+  --brand-light: #d3e9fb;
+  --accent: #f29714;
   --accent-dark: #dc9129;
-  --muted: #5b6b84;
-  --border: #dbe4f0;
+  --muted: #5e6f8a;
+  --border: #d7e1ee;
   --danger: #c23b3b;
   --success: #2f9e63;
+  --glass-bg: rgba(253, 254, 255, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --glass-shadow: 0 8px 32px rgba(50, 56, 109, 0.1);
 }
 
 @theme inline {
@@ -35,14 +43,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0c111c;
-    --foreground: #e8eef7;
-    --surface: #141c2b;
-    --brand: #5c8ecf;
+    --background: #0b1220;
+    --foreground: #e6edf8;
+    --surface: #131c2e;
+    --brand: #6a99d8;
     --brand-dark: #32386d;
-    --brand-light: #1b2c45;
-    --muted: #92a2ba;
-    --border: #24324a;
+    --brand-light: #1a2c47;
+    --muted: #8fa1bc;
+    --border: #223350;
+    --glass-bg: rgba(19, 28, 46, 0.6);
+    --glass-border: rgba(106, 153, 216, 0.18);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   }
 }
 
@@ -50,4 +61,59 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  /* Ambiente: luz suave con los azules de marca, fija al hacer scroll */
+  background-image:
+    radial-gradient(
+      52rem 36rem at 82% -12%,
+      color-mix(in oklab, var(--brand) 16%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      44rem 30rem at -10% 108%,
+      color-mix(in oklab, var(--brand-light) 44%, transparent),
+      transparent 58%
+    ),
+    radial-gradient(
+      30rem 22rem at 108% 82%,
+      color-mix(in oklab, var(--accent) 7%, transparent),
+      transparent 60%
+    );
+  background-attachment: fixed;
+}
+
+/* Marco de vidrio: sidebar, headers y tarjetas KPI */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Entrada suave de contenido al navegar */
+@keyframes entrada-suave {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animar-entrada {
+  animation: entrada-suave 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animar-entrada {
+    animation: none;
+  }
+}
+
+/* Foco visible y de marca en toda la app */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }

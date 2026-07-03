@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -30,13 +31,15 @@ export default function LoginPage() {
     <main className="flex flex-1 items-center justify-center bg-gradient-to-br from-brand-dark via-brand to-brand-light p-6">
       <div className="w-full max-w-sm rounded-2xl bg-surface/90 p-8 shadow-2xl backdrop-blur-xl border border-white/20">
         <div className="mb-8 text-center">
-          <div className="text-2xl font-bold tracking-tight text-brand-dark dark:text-foreground">
-            VITRALUX
-            <span className="block text-sm font-medium tracking-[0.3em] text-brand">
-              WINDOWS
-            </span>
-          </div>
-          <p className="mt-3 text-sm text-muted">Gestor de Proyectos</p>
+          <Image
+            src="/logo-vitralux.png"
+            alt="Vitralux Windows"
+            width={220}
+            height={67}
+            priority
+            className="mx-auto dark:brightness-0 dark:invert-[0.92]"
+          />
+          <p className="mt-4 text-sm text-muted">Gestor de Proyectos</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>

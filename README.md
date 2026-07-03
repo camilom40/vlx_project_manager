@@ -41,6 +41,19 @@ npm run dev
 
 Ver `backend/.env.example` y `frontend/.env.example`. Nunca commitear archivos `.env` con credenciales.
 
-## Despliegue
+## Despliegue en Railway
 
-Railway: servicio frontend + servicio backend + PostgreSQL (base de datos separada del cotizador existente).
+En el proyecto de Railway existente (el del cotizador), crear:
+
+1. **Base de datos**: nuevo servicio PostgreSQL (o una base `vitralux_pm` separada dentro del servicio existente — nunca mezclar con los datos del cotizador).
+2. **Servicio backend** (root directory: `backend/`):
+   - Build: `npm install && npm run build && npx prisma migrate deploy`
+   - Start: `npm start`
+   - Variables: todas las de `backend/.env.example` (`DATABASE_URL` de la base nueva, `JWT_SECRET` fuerte, SMTP y Twilio para que salgan los correos y WhatsApp reales, `FRONTEND_URL` con el dominio del frontend).
+   - Primera vez: ejecutar `npx prisma db seed` para crear equipos y el usuario administrador.
+3. **Servicio frontend** (root directory: `frontend/`):
+   - Build: `npm install && npm run build` · Start: `npm start`
+   - Variables: `NEXT_PUBLIC_API_URL` con la URL pública del backend.
+4. **Dominio sugerido**: `pm.vitralux.co` o `proyectos.vitralux.co` apuntando al frontend.
+
+Sin credenciales SMTP/Twilio el sistema funciona igual: las notificaciones quedan en la bandeja de la app y registran el motivo por el que no salieron.

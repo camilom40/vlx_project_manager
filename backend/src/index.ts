@@ -16,6 +16,7 @@ import { notificationsRouter } from "./routes/notifications";
 import { tasksRouter } from "./routes/tasks";
 import { auditRouter } from "./routes/audit";
 import { templatesRouter } from "./routes/templates";
+import { dashboardRouter } from "./routes/dashboard";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -43,6 +44,7 @@ app.use("/api/notifications", notificationsRouter);
 app.use("/api", tasksRouter);
 app.use("/api/audit", auditRouter);
 app.use("/api/templates", templatesRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Recurso no encontrado." });
