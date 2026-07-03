@@ -12,6 +12,9 @@ App web de gestión de proyectos para Vitralux Windows S.A.S. (Colombia) y VLX W
 - **Credenciales solo por variables de entorno.** Nunca commitear `.env`; mantener `.env.example` actualizado.
 - **Trabajo por fases (spec §9):** al terminar cada fase, detenerse y esperar visto bueno del usuario. Commit + push al cierre de cada fase que funcione (`Fase N: <resumen>`). Repo: https://github.com/camilom40/vlx_project_manager.git
 
+## Contexto de diseño (impeccable)
+Kit impeccable instalado en `.claude/skills/impeccable`. **Leer [PRODUCT.md](./PRODUCT.md) (estrategia: usuarios, personalidad, anti-referencias, principios) y [DESIGN.md](./DESIGN.md) (tokens, componentes, layout, motion) antes de cualquier trabajo de UI.** Modo live preconfigurado en `.impeccable/live/config.json`.
+
 ## Identidad visual (extraída del brand book)
 - **Colores:** azul principal `#4677BA` · azul oscuro `#32386D` · naranja acento `#F29714` (el PDF lista HEX `#DC9129` pero su RGB 242,151,20 y el swatch corresponden a `#F29714`; usar `#DC9129` como variante oscura del acento) · azul claro `#D3E9FB` · blanco `#FFFFFF`.
 - **Tipografía (decisión del usuario, 2026-07-03):** NO usar las fuentes del brand book (Galano Grotesque / Gotham). Usar tipografía moderna estilo Apple/macOS: **Geist Sans** (UI) y **Geist Mono** (datos numéricos/tabulares), ya integradas vía `next/font`.
