@@ -3,6 +3,13 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import {
+  BotonIcono,
+  IconoEditar,
+  IconoEliminar,
+  IconoEncender,
+  IconoLlave,
+} from "@/components/ui";
 
 interface Equipo {
   id: string;
@@ -288,44 +295,51 @@ export default function UsuariosPage() {
                   </span>
                 </td>
                 {puedeEditar && (
-                  <td className="space-x-3 px-4 py-3 text-xs">
-                    <button
-                      onClick={() => {
-                        setEditando(u);
-                        setMostrarForm(true);
-                      }}
-                      className="font-medium text-brand hover:underline"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => resetear(u)}
-                      className="font-medium text-accent-dark hover:underline"
-                    >
-                      Restablecer contraseña
-                    </button>
-                    {u.id === usuario?.id ? (
-                      <span className="text-muted" title="No puedes desactivar tu propio usuario">
-                        (tu cuenta)
-                      </span>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => alternarActivo(u)}
-                          className={`font-medium hover:underline ${
-                            u.isActive ? "text-danger" : "text-success"
-                          }`}
+                  <td className="px-2 py-2">
+                    <div className="flex items-center gap-0.5">
+                      <BotonIcono
+                        etiqueta="Editar"
+                        tono="brand"
+                        onClick={() => {
+                          setEditando(u);
+                          setMostrarForm(true);
+                        }}
+                      >
+                        <IconoEditar />
+                      </BotonIcono>
+                      <BotonIcono
+                        etiqueta="Restablecer contraseña"
+                        tono="accent"
+                        onClick={() => resetear(u)}
+                      >
+                        <IconoLlave />
+                      </BotonIcono>
+                      {u.id === usuario?.id ? (
+                        <span
+                          className="px-2 text-xs text-muted"
+                          title="No puedes desactivar tu propio usuario"
                         >
-                          {u.isActive ? "Desactivar" : "Activar"}
-                        </button>
-                        <button
-                          onClick={() => eliminar(u)}
-                          className="font-medium text-danger hover:underline"
-                        >
-                          Eliminar
-                        </button>
-                      </>
-                    )}
+                          tu cuenta
+                        </span>
+                      ) : (
+                        <>
+                          <BotonIcono
+                            etiqueta={u.isActive ? "Desactivar" : "Activar"}
+                            tono={u.isActive ? "danger" : "success"}
+                            onClick={() => alternarActivo(u)}
+                          >
+                            <IconoEncender />
+                          </BotonIcono>
+                          <BotonIcono
+                            etiqueta="Eliminar"
+                            tono="danger"
+                            onClick={() => eliminar(u)}
+                          >
+                            <IconoEliminar />
+                          </BotonIcono>
+                        </>
+                      )}
+                    </div>
                   </td>
                 )}
               </tr>

@@ -297,3 +297,121 @@ export function InterruptorAnimaciones() {
     </button>
   );
 }
+
+// ============================================================
+// Íconos de acción (SVG en línea, sin librería externa) + botón
+// compacto para filas de tabla (Editar, Restablecer, Activar, Eliminar).
+// ============================================================
+
+type IconoProps = { className?: string };
+const ICONO_BASE = "h-4 w-4";
+
+export function IconoEditar({ className = ICONO_BASE }: IconoProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+export function IconoLlave({ className = ICONO_BASE }: IconoProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <circle cx="8" cy="15" r="4" />
+      <path d="M10.8 12.2 20 3" />
+      <path d="M17 6l3 3" />
+      <path d="M14 9l2 2" />
+    </svg>
+  );
+}
+
+export function IconoEncender({ className = ICONO_BASE }: IconoProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M12 2v6" />
+      <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+    </svg>
+  );
+}
+
+export function IconoEliminar({ className = ICONO_BASE }: IconoProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  );
+}
+
+const TONOS_ICONO: Record<string, string> = {
+  muted: "text-muted hover:text-foreground hover:bg-background",
+  brand: "text-brand hover:bg-brand/10",
+  accent: "text-accent-dark hover:bg-accent/10",
+  danger: "text-danger hover:bg-danger/10",
+  success: "text-success hover:bg-success/10",
+};
+
+/** Botón compacto solo-ícono para acciones de fila (con tooltip via title). */
+export function BotonIcono({
+  etiqueta,
+  tono = "muted",
+  onClick,
+  children,
+}: {
+  etiqueta: string;
+  tono?: keyof typeof TONOS_ICONO;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={etiqueta}
+      aria-label={etiqueta}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition duration-150 active:scale-90 ${TONOS_ICONO[tono]}`}
+    >
+      {children}
+    </button>
+  );
+}
