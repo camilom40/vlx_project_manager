@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ESTADOS_ANTICIPO, ESTADOS_GARANTIA, ETAPAS } from "@/lib/etiquetas";
@@ -54,6 +54,98 @@ interface Dashboard {
   erroresPorPersona: { nombre: string; total: number }[];
 }
 
+type ProyectoFacturacion = Dashboard["facturacionPorProyecto"][number];
+
+// Agrupa los proyectos por constructora con subtotales por moneda
+function agruparPorCliente(proyectos: ProyectoFacturacion[]) {
+  const mapa = new Map<string, ProyectoFacturacion[]>();
+  for (const p of proyectos) {
+    const lista = mapa.get(p.cliente) ?? [];
+    lista.push(p);
+    mapa.set(p.cliente, lista);
+  }
+  return [...mapa.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([cliente, lista]) => {
+      const porMoneda = new Map<string, { contrato: number; facturado: number }>();
+      for (const p of lista) {
+        const t = porMoneda.get(p.moneda) ?? { contrato: 0, facturado: 0 };
+        t.contrato += p.monto ?? 0;
+        t.facturado += p.facturado;
+        porMoneda.set(p.moneda, t);
+      }
+      const totales = [...porMoneda.entries()].map(([moneda, t]) => ({
+        moneda,
+        ...t,
+      }));
+      const conMonto = totales.filter((t) => t.contrato > 0);
+      const porcentaje =
+        conMonto.length > 0
+          ? (conMonto.reduce((s, t) => s + t.facturado, 0) /
+              conMonto.reduce((s, t) => s + t.contrato, 0)) *
+            100
+          : null;
+      return { cliente, proyectos: lista, totales, porcentaje };
+    });
+}
+
+function FilaProyecto({
+  p,
+  conCliente = false,
+  sangria = false,
+}: {
+  p: ProyectoFacturacion;
+  conCliente?: boolean;
+  sangria?: boolean;
+}) {
+  return (
+    <tr className="border-b border-border last:border-0">
+      <td className={`px-4 py-3 ${sangria ? "pl-8" : ""}`}>
+        <Link
+          href={`/proyectos/${p.id}`}
+          className="font-medium text-brand hover:underline"
+        >
+          {p.nombre}
+        </Link>
+        {p.atrasado && (
+          <span className="block text-xs">
+            <Badge tono="rojo">
+              atrasado (est. {fecha(p.entregaEstimada)})
+            </Badge>
+          </span>
+        )}
+      </td>
+      {conCliente && <td className="px-4 py-3 text-muted">{p.cliente}</td>}
+      <td className="px-4 py-3">
+        <Badge tono={tonoEtapa(p.etapa)}>{ETAPAS[p.etapa]}</Badge>
+      </td>
+      <td className="px-4 py-3 text-right font-mono text-xs">
+        {moneda(p.monto, p.moneda)}
+      </td>
+      <td className="px-4 py-3 text-right font-mono text-xs">
+        {moneda(p.facturado, p.moneda)}
+      </td>
+      <td className="px-4 py-3">
+        {p.porcentaje !== null ? (
+          <div className="flex items-center gap-2">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
+              <div
+                className="h-full rounded-full bg-brand"
+                style={{ width: `${Math.min(100, p.porcentaje)}%` }}
+              />
+            </div>
+            <span className="w-12 text-right text-xs font-semibold">
+              {porcentaje(p.porcentaje)}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-muted">sin monto</span>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 function KPI({
   etiqueta,
   valor,
@@ -91,6 +183,7 @@ function KPI({
 export default function InicioPage() {
   const { usuario, puede } = useAuth();
   const [data, setData] = useState<Dashboard | null>(null);
+  const [agrupar, setAgrupar] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const esGerencial = puede("DASHBOARD_GERENCIAL");
@@ -198,13 +291,23 @@ export default function InicioPage() {
 
           {/* Facturación por proyecto */}
           <Tarjeta className="mt-6 overflow-hidden">
-            <div className="border-b border-border px-5 py-4">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <h2 className="font-semibold">% de facturación por proyecto</h2>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-muted">
+                <input
+                  type="checkbox"
+                  checked={agrupar}
+                  onChange={(e) => setAgrupar(e.target.checked)}
+                  className="h-4 w-4 accent-[var(--brand)]"
+                />
+                Agrupar por constructora
+              </label>
             </div>
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-background/60 text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-4 py-3">Proyecto</th>
+                  {!agrupar && <th className="px-4 py-3">Constructora</th>}
                   <th className="px-4 py-3">Etapa</th>
                   <th className="px-4 py-3 text-right">Contrato</th>
                   <th className="px-4 py-3 text-right">Facturado</th>
@@ -212,59 +315,56 @@ export default function InicioPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.facturacionPorProyecto.map((p) => (
-                  <tr key={p.id} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/proyectos/${p.id}`}
-                        className="font-medium text-brand hover:underline"
-                      >
-                        {p.nombre}
-                      </Link>
-                      <span className="block text-xs text-muted">
-                        {p.cliente}
-                        {p.atrasado && (
-                          <span className="ml-2">
-                            <Badge tono="rojo">
-                              atrasado (est. {fecha(p.entregaEstimada)})
-                            </Badge>
+                {(agrupar
+                  ? agruparPorCliente(data.facturacionPorProyecto)
+                  : [null]
+                ).map((grupo, gi) =>
+                  grupo === null ? (
+                    // Vista plana
+                    data.facturacionPorProyecto.map((p) => (
+                      <FilaProyecto key={p.id} p={p} conCliente />
+                    ))
+                  ) : (
+                    <Fragment key={gi}>
+                      <tr className="border-b border-border bg-brand-light/25">
+                        <td className="px-4 py-2.5 font-semibold" colSpan={2}>
+                          {grupo.cliente}
+                          <span className="ml-2 text-xs font-normal text-muted">
+                            {grupo.proyectos.length}{" "}
+                            {grupo.proyectos.length === 1
+                              ? "proyecto"
+                              : "proyectos"}
                           </span>
-                        )}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tono={tonoEtapa(p.etapa)}>{ETAPAS[p.etapa]}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-xs">
-                      {moneda(p.monto, p.moneda)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono text-xs">
-                      {moneda(p.facturado, p.moneda)}
-                    </td>
-                    <td className="px-4 py-3">
-                      {p.porcentaje !== null ? (
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-background">
-                            <div
-                              className="h-full rounded-full bg-brand"
-                              style={{
-                                width: `${Math.min(100, p.porcentaje)}%`,
-                              }}
-                            />
-                          </div>
-                          <span className="w-12 text-right text-xs font-semibold">
-                            {porcentaje(p.porcentaje)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted">sin monto</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">
+                          {grupo.totales.map((t) => (
+                            <span key={t.moneda} className="block">
+                              {moneda(t.contrato, t.moneda)}
+                            </span>
+                          ))}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-xs font-semibold">
+                          {grupo.totales.map((t) => (
+                            <span key={t.moneda} className="block">
+                              {moneda(t.facturado, t.moneda)}
+                            </span>
+                          ))}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-xs font-semibold">
+                          {grupo.porcentaje !== null
+                            ? porcentaje(grupo.porcentaje)
+                            : "—"}
+                        </td>
+                      </tr>
+                      {grupo.proyectos.map((p) => (
+                        <FilaProyecto key={p.id} p={p} sangria />
+                      ))}
+                    </Fragment>
+                  ),
+                )}
                 {data.facturacionPorProyecto.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8">
+                    <td colSpan={6} className="px-4 py-8">
                       <EstadoVacio>No hay proyectos activos.</EstadoVacio>
                     </td>
                   </tr>
