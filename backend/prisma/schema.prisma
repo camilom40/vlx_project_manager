@@ -167,6 +167,7 @@ enum AssignmentRole {
 
 enum AppModule {
   PROYECTOS
+  CLIENTES
   COTIZACIONES
   CRM
   CONTRATOS
@@ -296,13 +297,37 @@ model InstallerGroupMember {
 }
 
 // ============================================================
+// Clientes / constructoras
+// ============================================================
+
+model Client {
+  id          String  @id @default(cuid())
+  name        String  @unique // razón social / constructora
+  contactName String? // persona de contacto
+  email       String?
+  phone       String?
+  taxId       String? // NIT / EIN
+  address     String?
+  city        String?
+  notes       String?
+  isActive    Boolean @default(true)
+
+  projects Project[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ============================================================
 // Proyecto (núcleo) — un adicional es un Project hijo
 // ============================================================
 
 model Project {
   id                       String        @id @default(cuid())
   name                     String
-  clientName               String // cliente / constructora
+  clientName               String // denormalizado para listados (nombre del cliente)
+  clientId                 String?
+  client                   Client?       @relation(fields: [clientId], references: [id])
   market                   Market
   company                  Company
   currency                 Currency
@@ -352,6 +377,7 @@ model Project {
 
   @@index([currentStage, status])
   @@index([parentProjectId])
+  @@index([clientId])
 }
 
 // Equipo nominal del proyecto: supervisor, cotizador, planeador, jefe de taller

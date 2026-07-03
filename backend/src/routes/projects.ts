@@ -76,6 +76,7 @@ projectsRouter.post(
   async (req, res) => {
     const {
       name,
+      clientId,
       clientName,
       market,
       company,
@@ -90,10 +91,8 @@ projectsRouter.post(
       estimatedEndDate,
       notes,
     } = req.body ?? {};
-    if (!name || !clientName) {
-      res
-        .status(400)
-        .json({ error: "El nombre y el cliente son obligatorios." });
+    if (!name) {
+      res.status(400).json({ error: "El nombre del proyecto es obligatorio." });
       return;
     }
     if (!Object.values(Market).includes(market)) {
@@ -111,6 +110,7 @@ projectsRouter.post(
       return;
     }
     const isAdicional = type === ProjectType.ADICIONAL;
+    let parent = null;
     if (isAdicional) {
       if (!parentProjectId) {
         res.status(400).json({
@@ -118,7 +118,7 @@ projectsRouter.post(
         });
         return;
       }
-      const parent = await prisma.project.findUnique({
+      parent = await prisma.project.findUnique({
         where: { id: String(parentProjectId) },
       });
       if (!parent) {
@@ -132,10 +132,36 @@ projectsRouter.post(
         return;
       }
     }
+    // Cliente: seleccionado del módulo de clientes; el adicional hereda el del padre
+    let resolvedClientId: string | null = null;
+    let resolvedClientName: string | null = null;
+    if (clientId) {
+      const client = await prisma.client.findUnique({
+        where: { id: String(clientId) },
+      });
+      if (!client) {
+        res.status(404).json({ error: "El cliente seleccionado no existe." });
+        return;
+      }
+      resolvedClientId = client.id;
+      resolvedClientName = client.name;
+    } else if (isAdicional && parent) {
+      resolvedClientId = parent.clientId;
+      resolvedClientName = parent.clientName;
+    } else if (clientName) {
+      resolvedClientName = String(clientName).trim();
+    }
+    if (!resolvedClientName) {
+      res.status(400).json({
+        error: "Selecciona el cliente del proyecto (o créalo primero).",
+      });
+      return;
+    }
     const project = await prisma.project.create({
       data: {
         name: String(name).trim(),
-        clientName: String(clientName).trim(),
+        clientId: resolvedClientId,
+        clientName: resolvedClientName,
         market,
         company,
         currency,
@@ -173,6 +199,7 @@ projectsRouter.get(
     const project = await prisma.project.findUnique({
       where: { id: String(req.params.id) },
       include: {
+        client: true,
         parentProject: { select: { id: true, name: true, type: true } },
         children: {
           select: {

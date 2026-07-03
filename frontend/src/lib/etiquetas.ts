@@ -2,6 +2,7 @@
 
 export const MODULOS: Record<string, string> = {
   PROYECTOS: "Proyectos",
+  CLIENTES: "Clientes",
   COTIZACIONES: "Cotizaciones",
   CRM: "Seguimiento CRM",
   CONTRATOS: "Contratos",

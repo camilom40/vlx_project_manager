@@ -44,3 +44,6 @@ PostgreSQL 17 **portable** en `C:\Users\Camilo Mejia\pgsql17` (la instalación c
 
 ## Proyecto COMPLETO (2026-07-03)
 Las 6 fases construidas y verificadas contra el checklist de la sección 8 del spec. Pendiente del usuario: desplegar en Railway (guía en README) y configurar SMTP/Twilio para envíos reales.
+
+## Post-entrega
+- Módulo de **Clientes** (petición del usuario, 2026-07-03): modelo `Client` (nombre único, contacto, correo, teléfono, NIT, dirección, ciudad, notas, activo), `Project.clientId` FK opcional + `clientName` denormalizado que se sincroniza al renombrar. `AppModule.CLIENTES` (migración `clients`). GET /api/clients permite ver con permiso CLIENTES o PROYECTOS; mutaciones exigen CLIENTES editar (seed: Presupuesto editar, Contabilidad ver). UI: página /clientes (CRUD + búsqueda + activar/desactivar) y selector obligatorio en crear proyecto con "+ Crear cliente nuevo" inline; los adicionales heredan el cliente del padre automáticamente.

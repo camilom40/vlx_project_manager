@@ -22,6 +22,7 @@ const NAV_GRUPOS: {
     titulo: "Operación",
     items: [
       { href: "/proyectos", label: "Proyectos", modulo: "PROYECTOS" },
+      { href: "/clientes", label: "Clientes", modulo: "CLIENTES" },
       { href: "/cotizaciones", label: "Cotizaciones", modulo: "COTIZACIONES" },
       { href: "/produccion", label: "Producción", modulo: "PRODUCCION" },
       { href: "/garantias", label: "Garantías", modulo: "GARANTIAS" },

@@ -7,6 +7,7 @@ import { AppModule } from "../src/generated/prisma/enums";
 const TEAM_PERMISSIONS: Record<string, Partial<Record<AppModule, "ver" | "editar">>> = {
   Presupuesto: {
     PROYECTOS: "editar",
+    CLIENTES: "editar",
     COTIZACIONES: "editar",
     CRM: "editar",
     CONTRATOS: "editar",
@@ -16,6 +17,7 @@ const TEAM_PERMISSIONS: Record<string, Partial<Record<AppModule, "ver" | "editar
   },
   Contabilidad: {
     PROYECTOS: "ver",
+    CLIENTES: "ver",
     CONTRATOS: "ver",
     POLIZAS: "editar",
     ANTICIPOS: "editar",
