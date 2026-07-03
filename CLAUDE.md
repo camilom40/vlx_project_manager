@@ -36,7 +36,7 @@ PostgreSQL 17 **portable** en `C:\Users\Camilo Mejia\pgsql17` (la instalación c
 ## Estado de fases
 - [x] Fase 0 — Setup, estructura, git conectado al remoto.
 - [x] Fase 1 — Schema de Prisma completo (31 tablas), migración `init` aplicada, smoke test de conexión OK.
-- [ ] Fase 2 — Auth (bcrypt + JWT), usuarios, equipos, permisos granulares por usuario, reset de contraseña por Gerencia.
+- [x] Fase 2 — Auth (bcryptjs + JWT en localStorage), usuarios, equipos, permisos granulares (TeamPermission base + UserPermission override; Gerencia acceso total implícito), reset con contraseña temporal + cambio forzado. Seed: equipos del spec + admin `gerencia@vitralux.co`. UI: login, cambiar-password, layout con sidebar filtrada por permisos, páginas usuarios y equipos.
 - [ ] Fase 3 — Núcleo de proyectos: 5 etapas con retrocesos, adicionales (`parentProjectId`), asignación de equipo por proyecto.
 - [ ] Fase 4 — Módulos por etapa: cotización + mini-CRM · contrato/pólizas/anticipo · producción (acta de vanos → DTs → remisión) · instalación/actas · garantías.
 - [ ] Fase 5 — Transversales: notificaciones correo + WhatsApp ("pasar el balón"), errores/retrabajos, carga de trabajo, dependencias, Gantt, audit trail, templates.

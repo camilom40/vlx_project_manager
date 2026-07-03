@@ -31,3 +31,6 @@ Thumbs.db
 
 # Configuracion local de Claude
 .claude/settings.local.json
+
+# Cache de compilacion de Node (accidental via TEMP)
+node-compile-cache/

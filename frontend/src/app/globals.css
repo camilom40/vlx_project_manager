@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
+/* Identidad Vitralux (brand book) — tipografía Geist (estilo Apple) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f7fb;
+  --foreground: #16233a;
+  --surface: #ffffff;
+  --brand: #4677ba; /* azul principal */
+  --brand-dark: #32386d; /* azul oscuro */
+  --brand-light: #d3e9fb; /* azul claro */
+  --accent: #f29714; /* naranja acento */
+  --accent-dark: #dc9129;
+  --muted: #5b6b84;
+  --border: #dbe4f0;
+  --danger: #c23b3b;
+  --success: #2f9e63;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light: var(--brand-light);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0c111c;
+    --foreground: #e8eef7;
+    --surface: #141c2b;
+    --brand: #5c8ecf;
+    --brand-dark: #32386d;
+    --brand-light: #1b2c45;
+    --muted: #92a2ba;
+    --border: #24324a;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
