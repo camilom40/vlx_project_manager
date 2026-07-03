@@ -24,6 +24,11 @@ import {
   Tarjeta,
   tonoEtapa,
 } from "@/components/ui";
+import { TabCotizaciones } from "@/components/proyecto/TabCotizaciones";
+import { TabContrato } from "@/components/proyecto/TabContrato";
+import { TabProduccion } from "@/components/proyecto/TabProduccion";
+import { TabActas } from "@/components/proyecto/TabActas";
+import { TabGarantia } from "@/components/proyecto/TabGarantia";
 
 interface UsuarioMin {
   id: string;
@@ -75,10 +80,20 @@ interface Proyecto {
   }[];
 }
 
+const TABS = [
+  { id: "resumen", label: "Resumen", modulo: "PROYECTOS" },
+  { id: "cotizaciones", label: "Cotizaciones", modulo: "COTIZACIONES" },
+  { id: "contrato", label: "Contrato y compras", modulo: "CONTRATOS" },
+  { id: "produccion", label: "Producción", modulo: "PRODUCCION" },
+  { id: "actas", label: "Actas y facturación", modulo: "ACTAS" },
+  { id: "garantia", label: "Garantía", modulo: "GARANTIAS" },
+];
+
 export default function ProyectoDetallePage() {
   const params = useParams<{ id: string }>();
   const { puede } = useAuth();
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
+  const [tab, setTab] = useState("resumen");
   const [error, setError] = useState<string | null>(null);
   const [moviendo, setMoviendo] = useState<string | null>(null);
   const [motivoRetroceso, setMotivoRetroceso] = useState("");
@@ -299,6 +314,70 @@ export default function ProyectoDetallePage() {
         )}
       </Tarjeta>
 
+      {/* Pestañas por módulo (según permisos) */}
+      <div className="mt-6 flex flex-wrap gap-1 border-b border-border">
+        {TABS.filter((t) => puede(t.modulo)).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-t-lg px-4 py-2 text-sm font-medium transition ${
+              tab === t.id
+                ? "border border-b-0 border-border bg-surface text-brand"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "cotizaciones" && (
+        <div className="mt-6">
+          <TabCotizaciones
+            projectId={proyecto.id}
+            currency={proyecto.currency}
+            puedeEditar={puede("COTIZACIONES", "editar")}
+          />
+        </div>
+      )}
+      {tab === "contrato" && (
+        <div className="mt-6">
+          <TabContrato
+            projectId={proyecto.id}
+            currency={proyecto.currency}
+            puedeEditar={puede("CONTRATOS", "editar")}
+          />
+        </div>
+      )}
+      {tab === "produccion" && (
+        <div className="mt-6">
+          <TabProduccion
+            projectId={proyecto.id}
+            puedeEditar={puede("PRODUCCION", "editar")}
+          />
+        </div>
+      )}
+      {tab === "actas" && (
+        <div className="mt-6">
+          <TabActas
+            projectId={proyecto.id}
+            currency={proyecto.currency}
+            puedeEditar={puede("ACTAS", "editar")}
+          />
+        </div>
+      )}
+      {tab === "garantia" && (
+        <div className="mt-6">
+          <TabGarantia
+            projectId={proyecto.id}
+            currency={proyecto.currency}
+            puedeEditar={puede("GARANTIAS", "editar")}
+          />
+        </div>
+      )}
+
+      {tab === "resumen" && (
+      <>
       <div className="mt-6 grid grid-cols-2 gap-6">
         {/* Equipo asignado */}
         <Tarjeta className="p-5">
@@ -552,6 +631,8 @@ export default function ProyectoDetallePage() {
           })}
         </ul>
       </Tarjeta>
+      </>
+      )}
     </div>
   );
 }

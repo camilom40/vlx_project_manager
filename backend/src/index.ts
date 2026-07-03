@@ -6,6 +6,12 @@ import { usersRouter } from "./routes/users";
 import { teamsRouter } from "./routes/teams";
 import { projectsRouter } from "./routes/projects";
 import { installerGroupsRouter } from "./routes/installerGroups";
+import { quotesRouter } from "./routes/quotes";
+import { etapa2Router } from "./routes/etapa2";
+import { produccionRouter } from "./routes/produccion";
+import { actasRouter } from "./routes/actas";
+import { warrantiesRouter } from "./routes/warranties";
+import { errorsRouter } from "./routes/errors";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,6 +29,12 @@ app.use("/api/users", usersRouter);
 app.use("/api/teams", teamsRouter);
 app.use("/api/projects", projectsRouter);
 app.use("/api/installer-groups", installerGroupsRouter);
+app.use("/api/quotes", quotesRouter);
+app.use("/api", etapa2Router);
+app.use("/api", produccionRouter);
+app.use("/api", actasRouter);
+app.use("/api/warranties", warrantiesRouter);
+app.use("/api/errors", errorsRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ error: "Recurso no encontrado." });

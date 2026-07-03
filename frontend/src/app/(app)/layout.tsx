@@ -11,6 +11,7 @@ const NAV_ITEMS: { href: string; label: string; modulo: string }[] = [
   { href: "/cotizaciones", label: "Cotizaciones", modulo: "COTIZACIONES" },
   { href: "/produccion", label: "Producción", modulo: "PRODUCCION" },
   { href: "/garantias", label: "Garantías", modulo: "GARANTIAS" },
+  { href: "/errores", label: "Errores y retrabajos", modulo: "ERRORES" },
   { href: "/usuarios", label: "Usuarios", modulo: "USUARIOS" },
   { href: "/equipos", label: "Equipos", modulo: "EQUIPOS" },
   { href: "/grupos", label: "Grupos de instaladores", modulo: "EQUIPOS" },
