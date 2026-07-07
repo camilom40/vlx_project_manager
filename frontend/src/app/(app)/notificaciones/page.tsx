@@ -6,8 +6,10 @@ import { api } from "@/lib/api";
 import { fechaHora } from "@/lib/formato";
 import {
   Badge,
+  BotonIcono,
   BotonSecundario,
   EstadoVacio,
+  IconoCheck,
   MensajeError,
   Tarjeta,
 } from "@/components/ui";
@@ -106,17 +108,18 @@ export default function NotificacionesPage() {
                 </p>
               </div>
               {!n.read && (
-                <button
+                <BotonIcono
+                  etiqueta="Marcar leída"
+                  tono="brand"
                   onClick={async () => {
                     await api(`/api/notifications/${n.id}/leer`, {
                       method: "PUT",
                     });
                     await cargar();
                   }}
-                  className="whitespace-nowrap text-xs font-medium text-brand hover:underline"
                 >
-                  Marcar leída
-                </button>
+                  <IconoCheck />
+                </BotonIcono>
               )}
             </div>
           </Tarjeta>

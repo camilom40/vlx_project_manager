@@ -5,11 +5,14 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ETAPAS, PRIORIDADES } from "@/lib/etiquetas";
 import {
+  BotonIcono,
   BotonPrimario,
   BotonSecundario,
   Campo,
   Entrada,
   EstadoVacio,
+  IconoEliminar,
+  IconoQuitar,
   MensajeError,
   Selector,
   Tarjeta,
@@ -153,9 +156,11 @@ export default function PlantillasPage() {
                       onClick={() =>
                         setTareas((prev) => prev.filter((_, j) => j !== i))
                       }
-                      className="ml-2 text-xs text-danger hover:underline"
+                      title="Quitar tarea"
+                      aria-label="Quitar tarea"
+                      className="ml-2 inline-flex align-middle text-danger hover:text-danger/70"
                     >
-                      quitar
+                      <IconoQuitar className="h-3.5 w-3.5" />
                     </button>
                   </li>
                 ))}
@@ -232,7 +237,9 @@ export default function PlantillasPage() {
                 )}
               </div>
               {puedeEditar && (
-                <button
+                <BotonIcono
+                  etiqueta="Eliminar"
+                  tono="danger"
                   onClick={async () => {
                     if (window.confirm("¿Eliminar esta plantilla?")) {
                       await api(`/api/templates/${p.id}`, {
@@ -241,10 +248,9 @@ export default function PlantillasPage() {
                       await cargar();
                     }
                   }}
-                  className="text-xs text-danger hover:underline"
                 >
-                  Eliminar
-                </button>
+                  <IconoEliminar />
+                </BotonIcono>
               )}
             </div>
             <ol className="mt-3 list-inside list-decimal space-y-1 text-sm text-muted">

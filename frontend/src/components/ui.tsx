@@ -383,6 +383,43 @@ export function IconoEliminar({ className = ICONO_BASE }: IconoProps) {
   );
 }
 
+/** Check genérico: marcar como leída, entregada, completada, etc. */
+export function IconoCheck({ className = ICONO_BASE }: IconoProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+/** Equis pequeña para quitar un ítem de una lista en construcción (sin confirmación). */
+export function IconoQuitar({ className = ICONO_BASE }: IconoProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M18 6 6 18" />
+      <path d="M6 6l12 12" />
+    </svg>
+  );
+}
+
 const TONOS_ICONO: Record<string, string> = {
   muted: "text-muted hover:text-foreground hover:bg-background",
   brand: "text-brand hover:bg-brand/10",

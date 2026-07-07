@@ -12,11 +12,13 @@ import {
 import { fecha, moneda, porcentaje } from "@/lib/formato";
 import {
   Badge,
+  BotonIcono,
   BotonPrimario,
   BotonSecundario,
   Campo,
   Entrada,
   EstadoVacio,
+  IconoCheck,
   MensajeError,
   Selector,
   Tarjeta,
@@ -513,7 +515,9 @@ export function TabContrato({
                       {c.actualDeliveryAt ? (
                         fecha(c.actualDeliveryAt)
                       ) : puedeEditar ? (
-                        <button
+                        <BotonIcono
+                          etiqueta="Marcar entregada hoy"
+                          tono="brand"
                           onClick={() =>
                             accion(() =>
                               api(`/api/compras/${c.id}`, {
@@ -525,10 +529,9 @@ export function TabContrato({
                               }),
                             )
                           }
-                          className="text-xs font-medium text-brand hover:underline"
                         >
-                          Marcar entregada hoy
-                        </button>
+                          <IconoCheck />
+                        </BotonIcono>
                       ) : (
                         "—"
                       )}

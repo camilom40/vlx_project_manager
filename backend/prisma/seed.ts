@@ -30,6 +30,14 @@ const TEAM_PERMISSIONS: Record<string, Partial<Record<AppModule, "ver" | "editar
     ERRORES: "editar",
     NOTIFICACIONES: "ver",
   },
+  Supervisor: {
+    PROYECTOS: "ver",
+    PRODUCCION: "editar",
+    INSTALACION: "editar",
+    ACTAS: "editar",
+    ERRORES: "editar",
+    NOTIFICACIONES: "ver",
+  },
   Planeación: {
     PROYECTOS: "ver",
     PRODUCCION: "editar",
@@ -79,14 +87,15 @@ async function main() {
     }
   }
 
-  const adminEmail = "gerencia@vitralux.co";
-  const existing = await prisma.user.findUnique({
-    where: { email: adminEmail },
+  // Solo se crea un admin semilla si NINGÚN usuario de Gerencia existe todavía
+  // (busca por equipo, no por correo fijo: el admin real puede haber cambiado
+  // su correo desde la app).
+  const gerencia = await prisma.team.findUnique({ where: { name: "Gerencia" } });
+  const yaHayGerencia = await prisma.user.findFirst({
+    where: { teamId: gerencia!.id },
   });
-  if (!existing) {
-    const gerencia = await prisma.team.findUnique({
-      where: { name: "Gerencia" },
-    });
+  if (!yaHayGerencia) {
+    const adminEmail = "gerencia@vitralux.co";
     const tempPassword = generateTempPassword();
     await prisma.user.create({
       data: {
@@ -102,7 +111,7 @@ async function main() {
     console.log(`Contraseña temporal (cámbiala al entrar): ${tempPassword}`);
     console.log("================================================");
   } else {
-    console.log(`El usuario administrador ya existe (${adminEmail}).`);
+    console.log(`Ya existe un usuario de Gerencia (${yaHayGerencia.email}); no se crea admin semilla.`);
   }
   console.log("Seed completado.");
 }

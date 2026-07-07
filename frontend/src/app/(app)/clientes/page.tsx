@@ -5,12 +5,15 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
   Badge,
+  BotonIcono,
   BotonPrimario,
   BotonSecundario,
   Campo,
   Desplegable,
   Entrada,
   EstadoVacio,
+  IconoEditar,
+  IconoEncender,
   MensajeError,
   Tarjeta,
 } from "@/components/ui";
@@ -236,31 +239,33 @@ export default function ClientesPage() {
                   </Badge>
                 </td>
                 {puedeEditar && (
-                  <td className="space-x-3 px-4 py-3 text-xs">
-                    <button
-                      onClick={() => {
-                        setEditando(c);
-                        setMostrarForm(false);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                      className="font-medium text-brand hover:underline"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await api(`/api/clients/${c.id}`, {
-                          method: "PUT",
-                          body: JSON.stringify({ isActive: !c.isActive }),
-                        });
-                        await cargar();
-                      }}
-                      className={`font-medium hover:underline ${
-                        c.isActive ? "text-danger" : "text-success"
-                      }`}
-                    >
-                      {c.isActive ? "Desactivar" : "Activar"}
-                    </button>
+                  <td className="px-2 py-2">
+                    <div className="flex items-center gap-0.5">
+                      <BotonIcono
+                        etiqueta="Editar"
+                        tono="brand"
+                        onClick={() => {
+                          setEditando(c);
+                          setMostrarForm(false);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      >
+                        <IconoEditar />
+                      </BotonIcono>
+                      <BotonIcono
+                        etiqueta={c.isActive ? "Desactivar" : "Activar"}
+                        tono={c.isActive ? "danger" : "success"}
+                        onClick={async () => {
+                          await api(`/api/clients/${c.id}`, {
+                            method: "PUT",
+                            body: JSON.stringify({ isActive: !c.isActive }),
+                          });
+                          await cargar();
+                        }}
+                      >
+                        <IconoEncender />
+                      </BotonIcono>
+                    </div>
                   </td>
                 )}
               </tr>
