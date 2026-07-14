@@ -482,6 +482,17 @@ quotesRouter.put(
       include: quoteInclude,
     });
     await logAudit(req.user!.id, "editar_cotizacion", "Quote", quote.id);
+    // Pasó a revisión → avisar a los líderes de Presupuesto (quienes aprueban)
+    if (completed) {
+      const lideres = await teamLeadIds(BUDGET_TEAM);
+      void notify(
+        lideres.filter((id) => id !== req.user!.id),
+        "cotizacion.en_revision",
+        `Cotización lista para revisar: ${quote.title}`,
+        `${req.user!.name} terminó de elaborar la cotización "${quote.title}" del cliente ${quote.clientName} y está lista para tu aprobación.`,
+        null,
+      );
+    }
     res.json({ quote });
   },
 );
