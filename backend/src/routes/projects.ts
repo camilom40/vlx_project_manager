@@ -108,6 +108,12 @@ projectsRouter.post(
       res.status(400).json({ error: "La moneda debe ser COP o USD." });
       return;
     }
+    if (!costCenter || !String(costCenter).trim()) {
+      res.status(400).json({
+        error: "El centro de costo es obligatorio para crear el proyecto.",
+      });
+      return;
+    }
     const isAdicional = type === ProjectType.ADICIONAL;
     let parent = null;
     if (isAdicional) {
@@ -166,7 +172,7 @@ projectsRouter.post(
         currency,
         type: isAdicional ? ProjectType.ADICIONAL : ProjectType.PRINCIPAL,
         parentProjectId: isAdicional ? String(parentProjectId) : null,
-        costCenter: costCenter ? String(costCenter).trim() : null,
+        costCenter: String(costCenter).trim(),
         contractAmount: contractAmount ?? null,
         advancePercent: advancePercent ?? null,
         warrantyRetentionPercent: warrantyRetentionPercent ?? null,

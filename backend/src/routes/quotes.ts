@@ -660,6 +660,12 @@ quotesRouter.post(
       });
       return;
     }
+    if (!costCenter || !String(costCenter).trim()) {
+      res.status(400).json({
+        error: "El centro de costo es obligatorio para generar el proyecto.",
+      });
+      return;
+    }
     const project = await prisma.$transaction(async (tx) => {
       const created = await tx.project.create({
         data: {
@@ -671,7 +677,7 @@ quotesRouter.post(
           currency: quote.currency,
           contractAmount: quote.amount,
           type: ProjectType.PRINCIPAL,
-          costCenter: costCenter ? String(costCenter).trim() : null,
+          costCenter: String(costCenter).trim(),
           startDate: startDate ? new Date(startDate) : null,
           stageHistory: {
             create: {

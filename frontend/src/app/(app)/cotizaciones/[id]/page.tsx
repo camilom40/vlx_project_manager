@@ -93,6 +93,7 @@ export default function CotizacionDetallePage() {
   const [contactando, setContactando] = useState(false);
   const [editando, setEditando] = useState(false);
   const [generando, setGenerando] = useState(false);
+  const [mostrarGenerar, setMostrarGenerar] = useState(false);
 
   const puedeEditar = puede("COTIZACIONES", "editar");
   const puedeAsignar = Boolean(
@@ -137,13 +138,18 @@ export default function CotizacionDetallePage() {
     }
   }
 
-  async function generarProyecto() {
+  async function generarProyecto(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setError(null);
+    const form = new FormData(e.currentTarget);
     setGenerando(true);
     try {
       const res = await api<{ project: { id: string } }>(
         `/api/quotes/${params.id}/generar-proyecto`,
-        { method: "POST", body: JSON.stringify({}) },
+        {
+          method: "POST",
+          body: JSON.stringify({ costCenter: form.get("costCenter") }),
+        },
       );
       router.push(`/proyectos/${res.project.id}`);
     } catch (err) {
@@ -468,11 +474,31 @@ export default function CotizacionDetallePage() {
             {q.status === "ACEPTADA" &&
               !q.project &&
               puede("PROYECTOS", "editar") && (
-                <BotonPrimario disabled={generando} onClick={generarProyecto}>
-                  {generando ? "Generando..." : "Generar proyecto"}
+                <BotonPrimario onClick={() => setMostrarGenerar((v) => !v)}>
+                  Generar proyecto
                 </BotonPrimario>
               )}
           </div>
+
+          {mostrarGenerar && (
+            <form
+              onSubmit={generarProyecto}
+              className="mt-3 flex flex-wrap items-end gap-3 rounded-lg border border-border bg-background p-3"
+            >
+              <Campo etiqueta="Centro de costo (obligatorio)">
+                <Entrada name="costCenter" required placeholder="CC-0000" />
+              </Campo>
+              <BotonPrimario type="submit" disabled={generando}>
+                {generando ? "Generando..." : "Confirmar y generar"}
+              </BotonPrimario>
+              <BotonSecundario
+                type="button"
+                onClick={() => setMostrarGenerar(false)}
+              >
+                Cancelar
+              </BotonSecundario>
+            </form>
+          )}
 
           {rechazando && (
             <form

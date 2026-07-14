@@ -198,8 +198,8 @@ export default function ProyectosPage() {
               <option value="USD">USD — Dólar</option>
             </Selector>
           </Campo>
-          <Campo etiqueta="Centro de costo (opcional)">
-            <Entrada name="costCenter" placeholder="CC-0000" />
+          <Campo etiqueta="Centro de costo">
+            <Entrada name="costCenter" required placeholder="CC-0000" />
           </Campo>
           <Campo etiqueta="Monto de contrato (opcional)">
             <Entrada name="contractAmount" type="number" min="0" step="0.01" />
