@@ -53,6 +53,7 @@ export default function AppLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [sinLeer, setSinLeer] = useState(0);
+  const [pendientes, setPendientes] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (cargando) return;
@@ -70,6 +71,22 @@ export default function AppLayout({
     const consultar = () =>
       api<{ unread: number }>("/api/notifications")
         .then((d) => activo && setSinLeer(d.unread))
+        .catch(() => {});
+    consultar();
+    const intervalo = setInterval(consultar, 60000);
+    return () => {
+      activo = false;
+      clearInterval(intervalo);
+    };
+  }, [usuario, pathname]);
+
+  // Contador de pendientes por módulo (Cotizaciones, Producción, Garantías)
+  useEffect(() => {
+    if (!usuario) return;
+    let activo = true;
+    const consultar = () =>
+      api<{ pendientes: Record<string, number> }>("/api/pendientes")
+        .then((d) => activo && setPendientes(d.pendientes))
         .catch(() => {});
     consultar();
     const intervalo = setInterval(consultar, 60000);
@@ -123,6 +140,10 @@ export default function AppLayout({
                     item.href === "/"
                       ? pathname === "/"
                       : pathname.startsWith(item.href);
+                  const contador =
+                    item.href === "/notificaciones"
+                      ? sinLeer
+                      : (pendientes[item.modulo] ?? 0);
                   return (
                     <Link
                       key={item.href}
@@ -134,9 +155,9 @@ export default function AppLayout({
                       }`}
                     >
                       {item.label}
-                      {item.href === "/notificaciones" && sinLeer > 0 && (
+                      {contador > 0 && (
                         <motion.span
-                          key={sinLeer}
+                          key={contador}
                           initial={{ scale: 0.5 }}
                           animate={{ scale: 1 }}
                           transition={{
@@ -146,7 +167,7 @@ export default function AppLayout({
                           }}
                           className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-white"
                         >
-                          {sinLeer > 99 ? "99+" : sinLeer}
+                          {contador > 99 ? "99+" : contador}
                         </motion.span>
                       )}
                     </Link>
