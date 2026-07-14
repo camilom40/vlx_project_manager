@@ -19,6 +19,7 @@ import { templatesRouter } from "./routes/templates";
 import { dashboardRouter } from "./routes/dashboard";
 import { clientsRouter } from "./routes/clients";
 import { pendientesRouter } from "./routes/pendientes";
+import { startDeadlineWatcher } from "./lib/deadlines";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -63,4 +64,5 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 app.listen(PORT, () => {
   console.log(`API escuchando en el puerto ${PORT}`);
+  startDeadlineWatcher();
 });

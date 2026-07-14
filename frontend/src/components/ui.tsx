@@ -127,6 +127,45 @@ export function Desplegable({
   );
 }
 
+// Estados en los que la cotización todavía no se ha enviado al cliente
+const ESTADOS_COTIZACION_PRE_ENVIO = [
+  "INGRESADA",
+  "BORRADOR",
+  "EN_REVISION",
+  "APROBADA",
+  "CAMBIOS_SOLICITADOS",
+];
+
+/**
+ * Badge de proximidad a la fecha límite de entrega de una cotización.
+ * Solo se muestra mientras la cotización no se haya enviado al cliente.
+ */
+export function BadgeEntrega({
+  dueDate,
+  status,
+}: {
+  dueDate: string | null;
+  status: string;
+}) {
+  if (!dueDate || !ESTADOS_COTIZACION_PRE_ENVIO.includes(status)) return null;
+  const d = new Date(dueDate);
+  if (Number.isNaN(d.getTime())) return null;
+  const dias = Math.ceil((d.getTime() - Date.now()) / 86400000);
+  const texto =
+    dias > 1
+      ? `Vence en ${dias} días`
+      : dias === 1
+        ? "Vence mañana"
+        : dias === 0
+          ? "Vence hoy"
+          : `Vencida hace ${Math.abs(dias)} ${Math.abs(dias) === 1 ? "día" : "días"}`;
+  return (
+    <Badge tono={dias <= 3 ? "rojo" : dias <= 7 ? "naranja" : "azul"}>
+      {texto}
+    </Badge>
+  );
+}
+
 export function tonoCotizacion(estado: string): string {
   switch (estado) {
     case "ACEPTADA":

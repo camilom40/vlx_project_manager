@@ -14,6 +14,7 @@ import {
 import { diasDesde, fecha, fechaHora, moneda, porcentaje } from "@/lib/formato";
 import {
   Badge,
+  BadgeEntrega,
   BotonPrimario,
   BotonSecundario,
   Campo,
@@ -44,6 +45,7 @@ interface Cotizacion {
   status: string;
   requiresManagementApproval: boolean;
   receivedAt: string;
+  dueDate: string | null;
   assignedAt: string | null;
   completedAt: string | null;
   sentAt: string | null;
@@ -171,6 +173,7 @@ export default function CotizacionDetallePage() {
             form.get("requiresManagementApproval") === "on",
           description: form.get("description") ?? undefined,
           contactName: form.get("contactName") ?? undefined,
+          dueDate: form.get("dueDate") || null,
         }),
       }),
     );
@@ -247,6 +250,7 @@ export default function CotizacionDetallePage() {
             {fecha(q.receivedAt)}
             {diasIngreso !== null &&
               ` (hace ${diasIngreso} ${diasIngreso === 1 ? "día" : "días"})`}
+            {q.dueDate && ` · Entrega límite ${fecha(q.dueDate)}`}
           </p>
         </div>
         <div className="text-right">
@@ -260,6 +264,7 @@ export default function CotizacionDetallePage() {
                   {diasEspera} {diasEspera === 1 ? "día" : "días"} sin respuesta
                 </Badge>
               )}
+            <BadgeEntrega dueDate={q.dueDate} status={q.status} />
           </span>
           <p className="mt-2 font-mono text-lg font-semibold">
             {moneda(q.amount, q.currency)}
@@ -604,6 +609,13 @@ export default function CotizacionDetallePage() {
                 <dd className="font-medium">{q.contactName ?? "—"}</dd>
               </div>
               <div className="flex justify-between">
+                <dt className="text-muted">Fecha límite de entrega</dt>
+                <dd className="flex items-center gap-2">
+                  {q.dueDate ? fecha(q.dueDate) : "—"}
+                  <BadgeEntrega dueDate={q.dueDate} status={q.status} />
+                </dd>
+              </div>
+              <div className="flex justify-between">
                 <dt className="text-muted">Monto</dt>
                 <dd className="font-mono">{moneda(q.amount, q.currency)}</dd>
               </div>
@@ -647,6 +659,13 @@ export default function CotizacionDetallePage() {
                   name="contactName"
                   placeholder="Nombre de quien solicita"
                   defaultValue={q.contactName ?? ""}
+                />
+              </Campo>
+              <Campo etiqueta="Fecha límite de entrega">
+                <Entrada
+                  name="dueDate"
+                  type="date"
+                  defaultValue={q.dueDate ? q.dueDate.slice(0, 10) : ""}
                 />
               </Campo>
               <Campo etiqueta="Monto total">

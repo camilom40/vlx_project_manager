@@ -254,6 +254,7 @@ quotesRouter.post(
       company,
       currency,
       receivedAt,
+      dueDate,
     } = req.body ?? {};
     if (!title || !String(title).trim()) {
       res.status(400).json({ error: "El título de la cotización es obligatorio." });
@@ -293,6 +294,7 @@ quotesRouter.post(
         company,
         currency,
         receivedAt: receivedAt ? new Date(receivedAt) : new Date(),
+        dueDate: dueDate ? new Date(dueDate) : null,
       },
       include: quoteInclude,
     });
@@ -386,6 +388,7 @@ quotesRouter.put(
       company,
       currency,
       receivedAt,
+      dueDate,
       amount,
       marginPercent,
       requiresManagementApproval,
@@ -459,6 +462,11 @@ quotesRouter.put(
     if (company !== undefined) data.company = company;
     if (currency !== undefined) data.currency = currency;
     if (receivedAt !== undefined) data.receivedAt = new Date(receivedAt);
+    if (dueDate !== undefined) {
+      data.dueDate = dueDate ? new Date(dueDate) : null;
+      // El plazo cambió → el recordatorio se replanifica
+      data.dueSoonNotifiedAt = null;
+    }
     if (amount !== undefined) data.amount = amount;
     if (marginPercent !== undefined) data.marginPercent = marginPercent;
     if (requiresManagementApproval !== undefined)

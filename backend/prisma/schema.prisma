@@ -443,6 +443,8 @@ model Quote {
   company                    Company     @default(VITRALUX)
   currency                   Currency    @default(COP)
   receivedAt                 DateTime    @default(now()) // fecha de ingreso de la solicitud
+  dueDate                    DateTime? // fecha límite para enviarla al cliente (licitaciones)
+  dueSoonNotifiedAt          DateTime? // cuándo se envió el recordatorio de vencimiento
   projectId                  String?     @unique // proyecto generado al aceptarse
   project                    Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
   quoterId                   String?

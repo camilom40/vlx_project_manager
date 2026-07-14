@@ -8,9 +8,10 @@ import {
   ESTADOS_COTIZACION,
   RAZONES_RECHAZO,
 } from "@/lib/etiquetas";
-import { diasDesde, moneda, porcentaje } from "@/lib/formato";
+import { diasDesde, fecha, moneda, porcentaje } from "@/lib/formato";
 import {
   Badge,
+  BadgeEntrega,
   BotonPrimario,
   BotonSecundario,
   Campo,
@@ -35,6 +36,7 @@ interface Cotizacion {
   marginPercent: string | null;
   status: string;
   receivedAt: string;
+  dueDate: string | null;
   sentAt: string | null;
   quoter: { id: string; name: string } | null;
   project: { id: string; name: string } | null;
@@ -129,6 +131,7 @@ export default function CotizacionesPage() {
           company: form.get("company"),
           currency: form.get("currency"),
           receivedAt: form.get("receivedAt") || undefined,
+          dueDate: form.get("dueDate") || undefined,
         }),
       });
       setMostrarForm(false);
@@ -213,6 +216,9 @@ export default function CotizacionesPage() {
               type="date"
               defaultValue={new Date().toISOString().slice(0, 10)}
             />
+          </Campo>
+          <Campo etiqueta="Fecha límite de entrega (opcional)">
+            <Entrada name="dueDate" type="date" />
           </Campo>
           <Campo etiqueta="Cliente / constructora">
             <SelectorCliente
@@ -317,6 +323,7 @@ export default function CotizacionesPage() {
                             ? "Hoy"
                             : `${dias} ${dias === 1 ? "día" : "días"} sin asignar`}
                         </Badge>
+                        <BadgeEntrega dueDate={q.dueDate} status={q.status} />
                         {puedeAsignar && (
                           <>
                             <Selector
@@ -399,6 +406,7 @@ export default function CotizacionesPage() {
                   <th className="px-4 py-3">Responsable</th>
                   <th className="px-4 py-3">Monto</th>
                   <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3">Entrega límite</th>
                   <th className="px-4 py-3">Días desde ingreso</th>
                 </tr>
               </thead>
@@ -447,6 +455,23 @@ export default function CotizacionesPage() {
                           </Link>
                         )}
                       </td>
+                      <td className="px-4 py-3">
+                        {q.dueDate ? (
+                          <>
+                            <span className="text-xs text-muted">
+                              {fecha(q.dueDate)}
+                            </span>
+                            <span className="block">
+                              <BadgeEntrega
+                                dueDate={q.dueDate}
+                                status={q.status}
+                              />
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-muted">
                         {dias !== null
                           ? `${dias} ${dias === 1 ? "día" : "días"}`
@@ -457,7 +482,7 @@ export default function CotizacionesPage() {
                 })}
                 {filtradas.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8">
+                    <td colSpan={6} className="px-4 py-8">
                       <EstadoVacio>
                         No hay cotizaciones que coincidan. Registra la primera
                         con &quot;Nueva cotización&quot;.
