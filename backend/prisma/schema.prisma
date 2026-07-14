@@ -438,6 +438,7 @@ model Quote {
   clientName                 String // denormalizado para listados (nombre del cliente)
   clientId                   String?
   client                     Client?     @relation(fields: [clientId], references: [id])
+  contactName                String? // persona de contacto de esta cotización
   market                     Market      @default(CO)
   company                    Company     @default(VITRALUX)
   currency                   Currency    @default(COP)

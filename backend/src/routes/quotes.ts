@@ -249,6 +249,7 @@ quotesRouter.post(
       description,
       clientId,
       clientName,
+      contactName,
       market,
       company,
       currency,
@@ -287,6 +288,7 @@ quotesRouter.post(
         description: description ? String(description) : null,
         clientId: cliente.clientId,
         clientName: cliente.clientName,
+        contactName: contactName ? String(contactName).trim() : null,
         market,
         company,
         currency,
@@ -379,6 +381,7 @@ quotesRouter.put(
       description,
       clientId,
       clientName,
+      contactName,
       market,
       company,
       currency,
@@ -450,6 +453,8 @@ quotesRouter.put(
       data.clientId = cliente.clientId;
       data.clientName = cliente.clientName;
     }
+    if (contactName !== undefined)
+      data.contactName = contactName ? String(contactName).trim() : null;
     if (market !== undefined) data.market = market;
     if (company !== undefined) data.company = company;
     if (currency !== undefined) data.currency = currency;

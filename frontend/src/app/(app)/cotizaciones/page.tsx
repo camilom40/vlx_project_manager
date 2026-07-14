@@ -124,6 +124,7 @@ export default function CotizacionesPage() {
           title: form.get("title"),
           description: form.get("description") || undefined,
           clientId: clienteSel || undefined,
+          contactName: form.get("contactName") || undefined,
           market: form.get("market"),
           company: form.get("company"),
           currency: form.get("currency"),
@@ -219,6 +220,9 @@ export default function CotizacionesPage() {
               onChange={setClienteSel}
               onError={setError}
             />
+          </Campo>
+          <Campo etiqueta="Persona de contacto">
+            <Entrada name="contactName" placeholder="Nombre de quien solicita" />
           </Campo>
           <Campo etiqueta="Mercado">
             <Selector name="market" defaultValue="CO">

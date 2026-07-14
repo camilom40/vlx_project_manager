@@ -35,6 +35,7 @@ interface Cotizacion {
   description: string | null;
   clientName: string;
   client: UsuarioMin | null;
+  contactName: string | null;
   market: string;
   company: string;
   currency: string;
@@ -163,6 +164,7 @@ export default function CotizacionDetallePage() {
           requiresManagementApproval:
             form.get("requiresManagementApproval") === "on",
           description: form.get("description") ?? undefined,
+          contactName: form.get("contactName") ?? undefined,
         }),
       }),
     );
@@ -572,6 +574,10 @@ export default function CotizacionDetallePage() {
                 </dd>
               </div>
               <div className="flex justify-between">
+                <dt className="text-muted">Persona de contacto</dt>
+                <dd className="font-medium">{q.contactName ?? "—"}</dd>
+              </div>
+              <div className="flex justify-between">
                 <dt className="text-muted">Monto</dt>
                 <dd className="font-mono">{moneda(q.amount, q.currency)}</dd>
               </div>
@@ -610,6 +616,13 @@ export default function CotizacionDetallePage() {
             </dl>
           ) : (
             <form onSubmit={guardarDatos} className="mt-3 space-y-3">
+              <Campo etiqueta="Persona de contacto">
+                <Entrada
+                  name="contactName"
+                  placeholder="Nombre de quien solicita"
+                  defaultValue={q.contactName ?? ""}
+                />
+              </Campo>
               <Campo etiqueta="Monto total">
                 <Entrada
                   name="amount"
