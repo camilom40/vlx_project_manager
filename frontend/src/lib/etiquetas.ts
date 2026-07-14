@@ -34,7 +34,6 @@ export function etiquetaModulo(modulo: string): string {
 }
 
 export const ETAPAS: Record<string, string> = {
-  COTIZACION: "Cotización",
   CONTRATO: "Contrato",
   PRODUCCION: "Producción",
   INSTALACION: "Instalación",
@@ -42,7 +41,6 @@ export const ETAPAS: Record<string, string> = {
 };
 
 export const ORDEN_ETAPAS = [
-  "COTIZACION",
   "CONTRATO",
   "PRODUCCION",
   "INSTALACION",
@@ -67,6 +65,7 @@ export const EMPRESAS: Record<string, string> = {
 };
 
 export const ESTADOS_COTIZACION: Record<string, string> = {
+  INGRESADA: "Ingresada",
   BORRADOR: "Borrador",
   EN_REVISION: "En revisión",
   APROBADA: "Aprobada",

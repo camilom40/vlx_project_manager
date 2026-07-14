@@ -15,6 +15,7 @@ export interface AuthUser {
   email: string;
   teamId: string | null;
   teamName: string | null;
+  isTeamLead: boolean;
   mustChangePassword: boolean;
   permissions: EffectivePermissions;
 }
@@ -60,6 +61,7 @@ export async function authenticate(
     email: user.email,
     teamId: user.teamId,
     teamName: user.team?.name ?? null,
+    isTeamLead: user.isTeamLead,
     mustChangePassword: user.mustChangePassword,
     permissions: await getEffectivePermissions(user.id),
   };

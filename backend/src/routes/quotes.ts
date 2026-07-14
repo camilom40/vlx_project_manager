@@ -1,11 +1,18 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
-import { notify, teamMemberIds } from "../lib/notifications";
+import { notify, teamLeadIds, teamMemberIds } from "../lib/notifications";
+import { BUDGET_TEAM, MANAGEMENT_TEAM } from "../lib/permissions";
 import { prisma } from "../lib/prisma";
-import { authenticate, authorize } from "../middleware/auth";
+import { Prisma } from "../generated/prisma/client";
+import { authenticate, authorize, AuthUser } from "../middleware/auth";
 import {
   AppModule,
+  Company,
   ContactChannel,
+  Currency,
+  Market,
+  ProjectStage,
+  ProjectType,
   QuoteRejectionReason,
   QuoteStatus,
 } from "../generated/prisma/enums";
@@ -16,9 +23,11 @@ quotesRouter.use(authenticate);
 
 const quoteInclude = {
   project: {
-    select: { id: true, name: true, clientName: true, currency: true },
+    select: { id: true, name: true, currentStage: true },
   },
+  client: { select: { id: true, name: true } },
   quoter: { select: { id: true, name: true } },
+  assignedBy: { select: { id: true, name: true } },
   budgetApprovedBy: { select: { id: true, name: true } },
   managementApprovedBy: { select: { id: true, name: true } },
   rejection: true,
@@ -28,20 +37,67 @@ const quoteInclude = {
   },
 } as const;
 
-// Listado global (vista admin CRM): pendientes ordenadas por días esperando
+// ¿Puede asignar cotizaciones? Gerencia o líder del equipo Presupuesto
+function canAssignQuotes(user: AuthUser): boolean {
+  return (
+    user.teamName === MANAGEMENT_TEAM ||
+    (user.isTeamLead && user.teamName === BUDGET_TEAM)
+  );
+}
+
+// ¿Puede trabajar esta cotización? Quien asigna, o el cotizador responsable
+function canManageQuote(user: AuthUser, quote: { quoterId: string | null }): boolean {
+  return canAssignQuotes(user) || quote.quoterId === user.id;
+}
+
+// Cliente: seleccionado del módulo de clientes, o nombre libre
+async function resolveClient(
+  clientId: unknown,
+  clientName: unknown,
+): Promise<{ clientId: string | null; clientName: string | null } | null> {
+  if (clientId) {
+    const client = await prisma.client.findUnique({
+      where: { id: String(clientId) },
+    });
+    if (!client) return null;
+    return { clientId: client.id, clientName: client.name };
+  }
+  if (clientName && String(clientName).trim()) {
+    return { clientId: null, clientName: String(clientName).trim() };
+  }
+  return { clientId: null, clientName: null };
+}
+
+// Listado global del tablero de cotizaciones
 quotesRouter.get(
   "/",
   authorize(AppModule.COTIZACIONES, "ver"),
   async (req, res) => {
-    const { estado, cotizador, projectId } = req.query;
+    const { estado, cotizador, sinAsignar, buscar } = req.query;
     const quotes = await prisma.quote.findMany({
       where: {
         status: estado ? (String(estado) as QuoteStatus) : undefined,
-        quoterId: cotizador ? String(cotizador) : undefined,
-        projectId: projectId ? String(projectId) : undefined,
+        quoterId: sinAsignar
+          ? null
+          : cotizador
+            ? String(cotizador)
+            : undefined,
+        ...(buscar
+          ? {
+              OR: [
+                { title: { contains: String(buscar), mode: "insensitive" as const } },
+                {
+                  clientName: {
+                    contains: String(buscar),
+                    mode: "insensitive" as const,
+                  },
+                },
+              ],
+            }
+          : {}),
       },
       include: quoteInclude,
-      orderBy: [{ sentAt: "asc" }, { createdAt: "desc" }],
+      orderBy: [{ sentAt: "asc" }, { receivedAt: "asc" }],
     });
     res.json({ quotes });
   },
@@ -72,10 +128,38 @@ quotesRouter.get(
     > = {};
     const rechazosPorRazon: Record<string, number> = {};
     const tiemposRespuestaCliente: number[] = [];
+    const tiemposAsignacion: number[] = [];
+    const tiemposCiclo: number[] = [];
+    let sinAsignar = 0;
     let margenTotal = 0;
     let margenCount = 0;
 
     for (const q of quotes) {
+      if (!q.quoterId) sinAsignar++;
+      if (q.assignedAt) {
+        tiemposAsignacion.push(
+          (q.assignedAt.getTime() - q.receivedAt.getTime()) / 86400000,
+        );
+      }
+      if (q.sentAt) {
+        tiemposCiclo.push(
+          (q.sentAt.getTime() - q.receivedAt.getTime()) / 86400000,
+        );
+      }
+      if (q.rejection) {
+        rechazosPorRazon[q.rejection.reason] =
+          (rechazosPorRazon[q.rejection.reason] ?? 0) + 1;
+      }
+      if (q.sentAt && q.clientRespondedAt) {
+        tiemposRespuestaCliente.push(
+          (q.clientRespondedAt.getTime() - q.sentAt.getTime()) / 86400000,
+        );
+      }
+      if (q.marginPercent !== null) {
+        margenTotal += Number(q.marginPercent);
+        margenCount++;
+      }
+      if (!q.quoterId || !q.quoter) continue;
       const key = q.quoterId;
       porCotizador[key] ??= {
         nombre: q.quoter.name,
@@ -96,18 +180,7 @@ quotesRouter.get(
           (q.completedAt.getTime() - q.assignedAt.getTime()) / 86400000,
         );
       }
-      c.margenes.push(Number(q.marginPercent));
-      margenTotal += Number(q.marginPercent);
-      margenCount++;
-      if (q.rejection) {
-        rechazosPorRazon[q.rejection.reason] =
-          (rechazosPorRazon[q.rejection.reason] ?? 0) + 1;
-      }
-      if (q.sentAt && q.clientRespondedAt) {
-        tiemposRespuestaCliente.push(
-          (q.clientRespondedAt.getTime() - q.sentAt.getTime()) / 86400000,
-        );
-      }
+      if (q.marginPercent !== null) c.margenes.push(Number(q.marginPercent));
     }
 
     const prom = (xs: number[]) =>
@@ -127,52 +200,173 @@ quotesRouter.get(
       })),
       rechazosPorRazon,
       tiempoPromedioRespuestaClienteDias: prom(tiemposRespuestaCliente),
+      tiempoPromedioAsignacionDias: prom(tiemposAsignacion),
+      tiempoPromedioCicloDias: prom(tiemposCiclo),
+      sinAsignar,
       margenPromedioGlobal: margenCount ? margenTotal / margenCount : null,
       totalCotizaciones: quotes.length,
     });
   },
 );
 
+// Cotizadores a los que se puede asignar (miembros activos de Presupuesto)
+quotesRouter.get(
+  "/asignables",
+  authorize(AppModule.COTIZACIONES, "ver"),
+  async (_req, res) => {
+    const users = await prisma.user.findMany({
+      where: { isActive: true, team: { name: BUDGET_TEAM } },
+      select: { id: true, name: true, isTeamLead: true },
+      orderBy: { name: "asc" },
+    });
+    res.json({ users });
+  },
+);
+
+quotesRouter.get(
+  "/:id",
+  authorize(AppModule.COTIZACIONES, "ver"),
+  async (req, res) => {
+    const quote = await prisma.quote.findUnique({
+      where: { id: String(req.params.id) },
+      include: quoteInclude,
+    });
+    if (!quote) {
+      res.status(404).json({ error: "Cotización no encontrada." });
+      return;
+    }
+    res.json({ quote });
+  },
+);
+
+// Registrar el ingreso de una solicitud de cotización (antes de asignarla)
 quotesRouter.post(
   "/",
   authorize(AppModule.COTIZACIONES, "editar"),
   async (req, res) => {
     const {
-      projectId,
-      quoterId,
-      amount,
-      marginPercent,
-      requiresManagementApproval,
+      title,
+      description,
+      clientId,
+      clientName,
+      market,
+      company,
+      currency,
+      receivedAt,
     } = req.body ?? {};
-    if (!projectId || amount === undefined || marginPercent === undefined) {
-      res.status(400).json({
-        error: "El proyecto, el monto y el margen son obligatorios.",
-      });
+    if (!title || !String(title).trim()) {
+      res.status(400).json({ error: "El título de la cotización es obligatorio." });
       return;
     }
-    const project = await prisma.project.findUnique({
-      where: { id: String(projectId) },
-    });
-    if (!project) {
-      res.status(404).json({ error: "Proyecto no encontrado." });
+    if (!Object.values(Market).includes(market)) {
+      res.status(400).json({ error: "El mercado debe ser CO o USA." });
+      return;
+    }
+    if (!Object.values(Company).includes(company)) {
+      res.status(400).json({ error: "La empresa debe ser Vitralux o VLX." });
+      return;
+    }
+    if (!Object.values(Currency).includes(currency)) {
+      res.status(400).json({ error: "La moneda debe ser COP o USD." });
+      return;
+    }
+    const cliente = await resolveClient(clientId, clientName);
+    if (!cliente) {
+      res.status(404).json({ error: "El cliente seleccionado no existe." });
+      return;
+    }
+    if (!cliente.clientName) {
+      res.status(400).json({
+        error: "Selecciona el cliente de la cotización (o créalo primero).",
+      });
       return;
     }
     const quote = await prisma.quote.create({
       data: {
-        projectId: project.id,
-        quoterId: quoterId ? String(quoterId) : req.user!.id,
-        assignedById: req.user!.id,
-        assignedAt: new Date(),
-        amount,
-        marginPercent,
-        requiresManagementApproval: Boolean(requiresManagementApproval),
+        title: String(title).trim(),
+        description: description ? String(description) : null,
+        clientId: cliente.clientId,
+        clientName: cliente.clientName,
+        market,
+        company,
+        currency,
+        receivedAt: receivedAt ? new Date(receivedAt) : new Date(),
       },
       include: quoteInclude,
     });
     await logAudit(req.user!.id, "crear_cotizacion", "Quote", quote.id, {
-      projectId: project.id,
+      title: quote.title,
     });
+    // Avisar a los líderes de Presupuesto que hay una cotización por asignar
+    const lideres = await teamLeadIds(BUDGET_TEAM);
+    void notify(
+      lideres.filter((id) => id !== req.user!.id),
+      "cotizacion.ingresada",
+      `Nueva cotización por asignar: ${quote.title}`,
+      `Ingresó la cotización "${quote.title}" del cliente ${quote.clientName}. Asígnala a un cotizador para empezar a trabajarla.`,
+      null,
+    );
     res.status(201).json({ quote });
+  },
+);
+
+// Asignar (o reasignar) la cotización a un cotizador
+quotesRouter.post(
+  "/:id/asignar",
+  authorize(AppModule.COTIZACIONES, "editar"),
+  async (req, res) => {
+    if (!canAssignQuotes(req.user!)) {
+      res.status(403).json({
+        error:
+          "Solo los líderes de Presupuesto o Gerencia pueden asignar cotizaciones.",
+      });
+      return;
+    }
+    const { quoterId } = req.body ?? {};
+    if (!quoterId) {
+      res.status(400).json({ error: "Indica el cotizador responsable." });
+      return;
+    }
+    const quote = await prisma.quote.findUnique({
+      where: { id: String(req.params.id) },
+    });
+    if (!quote) {
+      res.status(404).json({ error: "Cotización no encontrada." });
+      return;
+    }
+    const quoter = await prisma.user.findUnique({
+      where: { id: String(quoterId) },
+    });
+    if (!quoter || !quoter.isActive) {
+      res.status(404).json({ error: "El usuario seleccionado no está activo." });
+      return;
+    }
+    const updated = await prisma.quote.update({
+      where: { id: quote.id },
+      data: {
+        quoterId: quoter.id,
+        assignedById: req.user!.id,
+        assignedAt: new Date(),
+        // Al asignarse por primera vez arranca la elaboración
+        ...(quote.status === QuoteStatus.INGRESADA
+          ? { status: QuoteStatus.BORRADOR }
+          : {}),
+      },
+      include: quoteInclude,
+    });
+    await logAudit(req.user!.id, "asignar_cotizacion", "Quote", quote.id, {
+      quoterId: quoter.id,
+    });
+    if (quoter.id !== req.user!.id) {
+      void notify(
+        [quoter.id],
+        "cotizacion.asignada",
+        `Cotización asignada: ${updated.title}`,
+        `${req.user!.name} te asignó la cotización "${updated.title}" del cliente ${updated.clientName}.`,
+        null,
+      );
+    }
+    res.json({ quote: updated });
   },
 );
 
@@ -180,8 +374,20 @@ quotesRouter.put(
   "/:id",
   authorize(AppModule.COTIZACIONES, "editar"),
   async (req, res) => {
-    const { amount, marginPercent, requiresManagementApproval, completed } =
-      req.body ?? {};
+    const {
+      title,
+      description,
+      clientId,
+      clientName,
+      market,
+      company,
+      currency,
+      receivedAt,
+      amount,
+      marginPercent,
+      requiresManagementApproval,
+      completed,
+    } = req.body ?? {};
     const existing = await prisma.quote.findUnique({
       where: { id: String(req.params.id) },
     });
@@ -189,20 +395,77 @@ quotesRouter.put(
       res.status(404).json({ error: "Cotización no encontrada." });
       return;
     }
+    if (!canManageQuote(req.user!, existing)) {
+      res.status(403).json({
+        error: "Solo el cotizador responsable (o un líder) puede editarla.",
+      });
+      return;
+    }
+    let cliente: { clientId: string | null; clientName: string | null } | null =
+      null;
+    if (clientId !== undefined || clientName !== undefined) {
+      cliente = await resolveClient(clientId, clientName);
+      if (!cliente) {
+        res.status(404).json({ error: "El cliente seleccionado no existe." });
+        return;
+      }
+      if (!cliente.clientName) cliente = null; // sin datos → no tocar
+    }
+    if (completed) {
+      const puedeCompletarse = (
+        [QuoteStatus.BORRADOR, QuoteStatus.CAMBIOS_SOLICITADOS] as QuoteStatus[]
+      ).includes(existing.status);
+      if (!puedeCompletarse) {
+        res.status(400).json({
+          error: "Solo una cotización en elaboración puede pasar a revisión.",
+        });
+        return;
+      }
+      if (!existing.quoterId) {
+        res.status(400).json({
+          error: "Asigna un cotizador antes de pasarla a revisión.",
+        });
+        return;
+      }
+      const finalAmount = amount !== undefined ? amount : existing.amount;
+      const finalMargin =
+        marginPercent !== undefined ? marginPercent : existing.marginPercent;
+      if (
+        finalAmount === null ||
+        finalAmount === undefined ||
+        finalMargin === null ||
+        finalMargin === undefined
+      ) {
+        res.status(400).json({
+          error: "Registra el monto y el margen antes de pasarla a revisión.",
+        });
+        return;
+      }
+    }
+    const data: Prisma.QuoteUncheckedUpdateInput = {};
+    if (title !== undefined) data.title = String(title).trim();
+    if (description !== undefined)
+      data.description = description ? String(description) : null;
+    if (cliente && cliente.clientName) {
+      data.clientId = cliente.clientId;
+      data.clientName = cliente.clientName;
+    }
+    if (market !== undefined) data.market = market;
+    if (company !== undefined) data.company = company;
+    if (currency !== undefined) data.currency = currency;
+    if (receivedAt !== undefined) data.receivedAt = new Date(receivedAt);
+    if (amount !== undefined) data.amount = amount;
+    if (marginPercent !== undefined) data.marginPercent = marginPercent;
+    if (requiresManagementApproval !== undefined)
+      data.requiresManagementApproval = Boolean(requiresManagementApproval);
+    // El cotizador marca que terminó de elaborarla → pasa a revisión
+    if (completed) {
+      data.completedAt = new Date();
+      data.status = QuoteStatus.EN_REVISION;
+    }
     const quote = await prisma.quote.update({
       where: { id: existing.id },
-      data: {
-        amount: amount !== undefined ? amount : undefined,
-        marginPercent: marginPercent !== undefined ? marginPercent : undefined,
-        requiresManagementApproval:
-          requiresManagementApproval !== undefined
-            ? Boolean(requiresManagementApproval)
-            : undefined,
-        // El cotizador marca que terminó de elaborarla → pasa a revisión
-        ...(completed
-          ? { completedAt: new Date(), status: QuoteStatus.EN_REVISION }
-          : {}),
-      },
+      data,
       include: quoteInclude,
     });
     await logAudit(req.user!.id, "editar_cotizacion", "Quote", quote.id);
@@ -223,7 +486,7 @@ quotesRouter.post(
       res.status(404).json({ error: "Cotización no encontrada." });
       return;
     }
-    if (tipo === "gerencia" && req.user!.teamName !== "Gerencia") {
+    if (tipo === "gerencia" && req.user!.teamName !== MANAGEMENT_TEAM) {
       res.status(403).json({
         error: "Solo Gerencia puede dar la aprobación de gerencia.",
       });
@@ -258,11 +521,15 @@ quotesRouter.post(
       const contabilidad = await teamMemberIds("Contabilidad");
       const tesoreria = await teamMemberIds("Tesorería");
       void notify(
-        [updated.quoterId, ...contabilidad, ...tesoreria],
+        [
+          ...(updated.quoterId ? [updated.quoterId] : []),
+          ...contabilidad,
+          ...tesoreria,
+        ],
         "cotizacion.aprobada",
-        `Cotización aprobada: ${updated.project.name}`,
-        `La cotización del proyecto "${updated.project.name}" quedó aprobada y lista para enviarse al cliente.`,
-        updated.projectId,
+        `Cotización aprobada: ${updated.title}`,
+        `La cotización "${updated.title}" del cliente ${updated.clientName} quedó aprobada y lista para enviarse al cliente.`,
+        null,
       );
     }
     await logAudit(
@@ -359,6 +626,67 @@ quotesRouter.post(
       razon,
     });
     res.json({ quote: updated });
+  },
+);
+
+// Cotización aceptada → generar el proyecto vinculado (nace en Contrato)
+quotesRouter.post(
+  "/:id/generar-proyecto",
+  authorize(AppModule.PROYECTOS, "editar"),
+  async (req, res) => {
+    const { name, costCenter, startDate } = req.body ?? {};
+    const quote = await prisma.quote.findUnique({
+      where: { id: String(req.params.id) },
+    });
+    if (!quote) {
+      res.status(404).json({ error: "Cotización no encontrada." });
+      return;
+    }
+    if (quote.status !== QuoteStatus.ACEPTADA) {
+      res.status(400).json({
+        error:
+          "Solo una cotización aceptada por el cliente puede generar un proyecto.",
+      });
+      return;
+    }
+    if (quote.projectId) {
+      res.status(400).json({
+        error: "Esta cotización ya generó un proyecto.",
+      });
+      return;
+    }
+    const project = await prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          name: name && String(name).trim() ? String(name).trim() : quote.title,
+          clientId: quote.clientId,
+          clientName: quote.clientName,
+          market: quote.market,
+          company: quote.company,
+          currency: quote.currency,
+          contractAmount: quote.amount,
+          type: ProjectType.PRINCIPAL,
+          costCenter: costCenter ? String(costCenter).trim() : null,
+          startDate: startDate ? new Date(startDate) : null,
+          stageHistory: {
+            create: {
+              toStage: ProjectStage.CONTRATO,
+              changedById: req.user!.id,
+              reason: "Proyecto generado desde cotización aceptada",
+            },
+          },
+        },
+      });
+      await tx.quote.update({
+        where: { id: quote.id },
+        data: { projectId: created.id },
+      });
+      return created;
+    });
+    await logAudit(req.user!.id, "generar_proyecto", "Quote", quote.id, {
+      projectId: project.id,
+    });
+    res.status(201).json({ project });
   },
 );
 

@@ -18,9 +18,8 @@ export const projectsRouter = Router();
 
 projectsRouter.use(authenticate);
 
-// Orden canónico de las 5 etapas (para detectar retrocesos)
+// Orden canónico de las 4 etapas (para detectar retrocesos)
 const STAGE_ORDER: ProjectStage[] = [
-  ProjectStage.COTIZACION,
   ProjectStage.CONTRATO,
   ProjectStage.PRODUCCION,
   ProjectStage.INSTALACION,
@@ -36,7 +35,7 @@ const listInclude = {
     where: { isActive: true },
     include: { group: { select: { id: true, name: true } } },
   },
-  _count: { select: { children: true, quotes: true } },
+  _count: { select: { children: true } },
 } as const;
 
 projectsRouter.get(
@@ -176,7 +175,7 @@ projectsRouter.post(
         notes: notes ? String(notes) : null,
         stageHistory: {
           create: {
-            toStage: ProjectStage.COTIZACION,
+            toStage: ProjectStage.CONTRATO,
             changedById: req.user!.id,
             reason: "Creación del proyecto",
           },
@@ -200,6 +199,16 @@ projectsRouter.get(
       where: { id: String(req.params.id) },
       include: {
         client: true,
+        originQuote: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            amount: true,
+            currency: true,
+            quoter: { select: { id: true, name: true } },
+          },
+        },
         parentProject: { select: { id: true, name: true, type: true } },
         children: {
           select: {

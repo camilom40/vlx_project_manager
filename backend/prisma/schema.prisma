@@ -37,7 +37,6 @@ enum ProjectType {
 }
 
 enum ProjectStage {
-  COTIZACION
   CONTRATO
   PRODUCCION
   INSTALACION
@@ -52,6 +51,7 @@ enum ProjectStatus {
 }
 
 enum QuoteStatus {
+  INGRESADA
   BORRADOR
   EN_REVISION
   APROBADA
@@ -207,6 +207,7 @@ model User {
   passwordHash       String
   isActive           Boolean @default(true)
   mustChangePassword Boolean @default(false) // true tras reset por Gerencia
+  isTeamLead         Boolean @default(false) // líder de equipo: puede asignar cotizaciones de su equipo
 
   teamId String?
   team   Team?   @relation(fields: [teamId], references: [id])
@@ -313,6 +314,7 @@ model Client {
   isActive    Boolean @default(true)
 
   projects Project[]
+  quotes   Quote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -335,7 +337,7 @@ model Project {
   contractAmount           Decimal?      @db.Decimal(14, 2)
   advancePercent           Decimal?      @db.Decimal(5, 2)
   warrantyRetentionPercent Decimal?      @db.Decimal(5, 2)
-  currentStage             ProjectStage  @default(COTIZACION)
+  currentStage             ProjectStage  @default(CONTRATO)
   status                   ProjectStatus @default(ACTIVO)
   type                     ProjectType   @default(PRINCIPAL)
   startDate                DateTime?
@@ -356,7 +358,7 @@ model Project {
   assignments     ProjectAssignment[]
   installerGroups ProjectInstallerGroup[]
   stageHistory    ProjectStageHistory[]
-  quotes          Quote[]
+  originQuote     Quote?
   contracts       Contract[]
   policies        Policy[]
   advances        Advance[]
@@ -425,20 +427,30 @@ model ProjectStageHistory {
 }
 
 // ============================================================
-// Etapa 1 — Cotización + mini-CRM
+// Cotizaciones + mini-CRM (previas al proyecto; una cotización
+// aceptada puede generar un proyecto — projectId = proyecto generado)
 // ============================================================
 
 model Quote {
   id                         String      @id @default(cuid())
-  projectId                  String
-  project                    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  quoterId                   String
-  quoter                     User        @relation("QuoteQuoter", fields: [quoterId], references: [id])
+  title                      String
+  description                String?
+  clientName                 String // denormalizado para listados (nombre del cliente)
+  clientId                   String?
+  client                     Client?     @relation(fields: [clientId], references: [id])
+  market                     Market      @default(CO)
+  company                    Company     @default(VITRALUX)
+  currency                   Currency    @default(COP)
+  receivedAt                 DateTime    @default(now()) // fecha de ingreso de la solicitud
+  projectId                  String?     @unique // proyecto generado al aceptarse
+  project                    Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  quoterId                   String?
+  quoter                     User?       @relation("QuoteQuoter", fields: [quoterId], references: [id])
   assignedById               String?
   assignedBy                 User?       @relation("QuoteAssigner", fields: [assignedById], references: [id])
-  amount                     Decimal     @db.Decimal(14, 2)
-  marginPercent              Decimal     @db.Decimal(5, 2) // % sobre precio de venta
-  status                     QuoteStatus @default(BORRADOR)
+  amount                     Decimal?    @db.Decimal(14, 2)
+  marginPercent              Decimal?    @db.Decimal(5, 2) // % sobre precio de venta
+  status                     QuoteStatus @default(INGRESADA)
   requiresManagementApproval Boolean     @default(false)
 
   // Timestamps para analítica CRM (tiempos de entrega y respuesta)
@@ -461,6 +473,7 @@ model Quote {
 
   @@index([status])
   @@index([quoterId])
+  @@index([clientId])
 }
 
 // Bitácora CRM: cada contacto con el cliente

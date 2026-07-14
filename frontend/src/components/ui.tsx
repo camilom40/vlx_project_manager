@@ -127,10 +127,26 @@ export function Desplegable({
   );
 }
 
+export function tonoCotizacion(estado: string): string {
+  switch (estado) {
+    case "ACEPTADA":
+      return "verde";
+    case "RECHAZADA":
+      return "rojo";
+    case "APROBADA":
+    case "ENVIADA":
+      return "azul";
+    case "INGRESADA":
+    case "CAMBIOS_SOLICITADOS":
+    case "SIN_RESPUESTA":
+      return "naranja";
+    default:
+      return "gris";
+  }
+}
+
 export function tonoEtapa(etapa: string): string {
   switch (etapa) {
-    case "COTIZACION":
-      return "azul";
     case "CONTRATO":
       return "naranja";
     case "PRODUCCION":

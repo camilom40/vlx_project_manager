@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
   EMPRESAS,
+  ESTADOS_COTIZACION,
   ESTADOS_PROYECTO,
   ETAPAS,
   ORDEN_ETAPAS,
@@ -25,7 +26,6 @@ import {
   Tarjeta,
   tonoEtapa,
 } from "@/components/ui";
-import { TabCotizaciones } from "@/components/proyecto/TabCotizaciones";
 import { TabContrato } from "@/components/proyecto/TabContrato";
 import { TabProduccion } from "@/components/proyecto/TabProduccion";
 import { TabActas } from "@/components/proyecto/TabActas";
@@ -56,6 +56,14 @@ interface Proyecto {
   notes: string | null;
   earlyStartWithoutAdvance: boolean;
   earlyStartAuthorizedBy: UsuarioMin | null;
+  originQuote: {
+    id: string;
+    title: string;
+    status: string;
+    amount: string | null;
+    currency: string;
+    quoter: UsuarioMin | null;
+  } | null;
   parentProject: { id: string; name: string } | null;
   children: {
     id: string;
@@ -84,7 +92,6 @@ interface Proyecto {
 
 const TABS = [
   { id: "resumen", label: "Resumen", modulo: "PROYECTOS" },
-  { id: "cotizaciones", label: "Cotizaciones", modulo: "COTIZACIONES" },
   { id: "contrato", label: "Contrato y compras", modulo: "CONTRATOS" },
   { id: "produccion", label: "Producción", modulo: "PRODUCCION" },
   { id: "actas", label: "Actas y facturación", modulo: "ACTAS" },
@@ -383,15 +390,6 @@ export default function ProyectoDetallePage() {
         ))}
       </div>
 
-      {tab === "cotizaciones" && (
-        <div className="mt-6">
-          <TabCotizaciones
-            projectId={proyecto.id}
-            currency={proyecto.currency}
-            puedeEditar={puede("COTIZACIONES", "editar")}
-          />
-        </div>
-      )}
       {tab === "contrato" && (
         <div className="mt-6">
           <TabContrato
@@ -531,6 +529,24 @@ export default function ProyectoDetallePage() {
         <Tarjeta className="p-5">
           <h2 className="font-semibold">Datos del proyecto</h2>
           <dl className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted">Cotización de origen</dt>
+              <dd className="text-right">
+                {proyecto.originQuote ? (
+                  <Link
+                    href={`/cotizaciones/${proyecto.originQuote.id}`}
+                    className="inline-flex items-center gap-2 font-medium text-brand hover:underline"
+                  >
+                    {proyecto.originQuote.title}
+                    <Badge tono="verde">
+                      {ESTADOS_COTIZACION[proyecto.originQuote.status]}
+                    </Badge>
+                  </Link>
+                ) : (
+                  <span className="text-muted">Creado manualmente</span>
+                )}
+              </dd>
+            </div>
             <div className="flex justify-between">
               <dt className="text-muted">Monto de contrato</dt>
               <dd className="font-mono">

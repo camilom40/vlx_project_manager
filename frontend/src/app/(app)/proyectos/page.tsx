@@ -25,6 +25,7 @@ import {
   Tarjeta,
   tonoEtapa,
 } from "@/components/ui";
+import { SelectorCliente } from "@/components/SelectorCliente";
 
 interface ProyectoResumen {
   id: string;
@@ -39,7 +40,7 @@ interface ProyectoResumen {
   status: string;
   type: string;
   parentProject: { id: string; name: string } | null;
-  _count: { children: number; quotes: number };
+  _count: { children: number };
 }
 
 export default function ProyectosPage() {
@@ -53,8 +54,7 @@ export default function ProyectosPage() {
   const [mostrarForm, setMostrarForm] = useState(false);
   const [tipoNuevo, setTipoNuevo] = useState("PRINCIPAL");
   const [principales, setPrincipales] = useState<ProyectoResumen[]>([]);
-  const [clientes, setClientes] = useState<{ id: string; name: string }[]>([]);
-  const [clienteRapido, setClienteRapido] = useState(false);
+  const [clienteSel, setClienteSel] = useState("");
 
   const puedeEditar = puede("PROYECTOS", "editar");
 
@@ -79,61 +79,13 @@ export default function ProyectosPage() {
     cargar();
   }, [cargar]);
 
-  const cargarClientes = useCallback(() => {
-    api<{ clients: { id: string; name: string }[] }>("/api/clients")
-      .then((d) => setClientes(d.clients))
-      .catch(() => {});
-  }, []);
-
   useEffect(() => {
     if (mostrarForm) {
       api<{ projects: ProyectoResumen[] }>("/api/projects?tipo=PRINCIPAL")
         .then((d) => setPrincipales(d.projects))
         .catch(() => {});
-      cargarClientes();
     }
-  }, [mostrarForm, cargarClientes]);
-
-  const [nuevoCliente, setNuevoCliente] = useState({
-    nombre: "",
-    contacto: "",
-    correo: "",
-    telefono: "",
-  });
-
-  async function crearClienteRapido() {
-    setError(null);
-    if (!nuevoCliente.nombre.trim()) {
-      setError("Escribe el nombre del cliente nuevo.");
-      return;
-    }
-    try {
-      const res = await api<{ client: { id: string; name: string } }>(
-        "/api/clients",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            name: nuevoCliente.nombre,
-            contactName: nuevoCliente.contacto || null,
-            email: nuevoCliente.correo || null,
-            phone: nuevoCliente.telefono || null,
-          }),
-        },
-      );
-      setClienteRapido(false);
-      setNuevoCliente({ nombre: "", contacto: "", correo: "", telefono: "" });
-      cargarClientes();
-      // Dejarlo seleccionado en el formulario principal
-      setTimeout(() => {
-        const sel = document.querySelector<HTMLSelectElement>(
-          'select[name="clientId"]',
-        );
-        if (sel) sel.value = res.client.id;
-      }, 150);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al crear cliente.");
-    }
-  }
+  }, [mostrarForm]);
 
   async function crear(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -144,7 +96,7 @@ export default function ProyectosPage() {
         method: "POST",
         body: JSON.stringify({
           name: form.get("name"),
-          clientId: form.get("clientId") || undefined,
+          clientId: tipoNuevo !== "ADICIONAL" ? clienteSel || undefined : undefined,
           market: form.get("market"),
           company: form.get("company"),
           currency: form.get("currency"),
@@ -218,68 +170,12 @@ export default function ProyectosPage() {
             </Campo>
           ) : (
             <Campo etiqueta="Cliente / constructora">
-              <Selector name="clientId" required>
-                <option value="">Selecciona un cliente...</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Selector>
-              <button
-                type="button"
-                onClick={() => setClienteRapido((v) => !v)}
-                className="mt-1 text-xs font-medium text-brand hover:underline"
-              >
-                {clienteRapido ? "Cerrar cliente nuevo" : "+ Crear cliente nuevo"}
-              </button>
+              <SelectorCliente
+                value={clienteSel}
+                onChange={setClienteSel}
+                onError={setError}
+              />
             </Campo>
-          )}
-          {clienteRapido && tipoNuevo !== "ADICIONAL" && (
-            <div className="col-span-3 grid grid-cols-4 items-end gap-3 rounded-lg border border-dashed border-brand/40 bg-brand-light/20 p-3">
-              <Campo etiqueta="Nombre del cliente nuevo">
-                <Entrada
-                  value={nuevoCliente.nombre}
-                  onChange={(e) =>
-                    setNuevoCliente((c) => ({ ...c, nombre: e.target.value }))
-                  }
-                  placeholder="Constructora ABC S.A.S."
-                />
-              </Campo>
-              <Campo etiqueta="Contacto">
-                <Entrada
-                  value={nuevoCliente.contacto}
-                  onChange={(e) =>
-                    setNuevoCliente((c) => ({ ...c, contacto: e.target.value }))
-                  }
-                />
-              </Campo>
-              <Campo etiqueta="Correo">
-                <Entrada
-                  type="email"
-                  value={nuevoCliente.correo}
-                  onChange={(e) =>
-                    setNuevoCliente((c) => ({ ...c, correo: e.target.value }))
-                  }
-                />
-              </Campo>
-              <div className="flex gap-2">
-                <Campo etiqueta="Teléfono" ancho="flex-1">
-                  <Entrada
-                    value={nuevoCliente.telefono}
-                    onChange={(e) =>
-                      setNuevoCliente((c) => ({
-                        ...c,
-                        telefono: e.target.value,
-                      }))
-                    }
-                  />
-                </Campo>
-                <BotonPrimario type="button" onClick={crearClienteRapido}>
-                  Crear
-                </BotonPrimario>
-              </div>
-            </div>
           )}
           <Campo etiqueta="Mercado">
             <Selector name="market" defaultValue="CO">

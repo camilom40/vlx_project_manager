@@ -16,6 +16,7 @@ const userSelect = {
   email: true,
   phone: true,
   isActive: true,
+  isTeamLead: true,
   mustChangePassword: true,
   teamId: true,
   team: { select: { id: true, name: true } },
@@ -31,7 +32,7 @@ usersRouter.get("/", authorize(AppModule.USUARIOS, "ver"), async (_req, res) => 
 });
 
 usersRouter.post("/", authorize(AppModule.USUARIOS, "editar"), async (req, res) => {
-  const { name, email, phone, teamId, password } = req.body ?? {};
+  const { name, email, phone, teamId, password, isTeamLead } = req.body ?? {};
   if (!name || !email) {
     res.status(400).json({ error: "El nombre y el correo son obligatorios." });
     return;
@@ -51,6 +52,7 @@ usersRouter.post("/", authorize(AppModule.USUARIOS, "editar"), async (req, res) 
       email: normalizedEmail,
       phone: phone ? String(phone).trim() : null,
       teamId: teamId || null,
+      isTeamLead: Boolean(isTeamLead),
       passwordHash: await hashPassword(tempPassword),
       mustChangePassword: true,
     },
@@ -64,7 +66,7 @@ usersRouter.post("/", authorize(AppModule.USUARIOS, "editar"), async (req, res) 
 });
 
 usersRouter.put("/:id", authorize(AppModule.USUARIOS, "editar"), async (req, res) => {
-  const { name, email, phone, teamId, isActive } = req.body ?? {};
+  const { name, email, phone, teamId, isActive, isTeamLead } = req.body ?? {};
   const existing = await prisma.user.findUnique({
     where: { id: String(req.params.id) },
   });
@@ -116,6 +118,7 @@ usersRouter.put("/:id", authorize(AppModule.USUARIOS, "editar"), async (req, res
       phone: phone !== undefined ? (phone ? String(phone).trim() : null) : undefined,
       teamId: teamId !== undefined ? teamId || null : undefined,
       isActive: isActive !== undefined ? Boolean(isActive) : undefined,
+      isTeamLead: isTeamLead !== undefined ? Boolean(isTeamLead) : undefined,
     },
     select: userSelect,
   });

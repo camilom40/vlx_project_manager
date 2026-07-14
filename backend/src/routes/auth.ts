@@ -17,6 +17,7 @@ function publicUser(user: {
   email: string;
   phone: string | null;
   teamId: string | null;
+  isTeamLead: boolean;
   mustChangePassword: boolean;
 }) {
   return {
@@ -25,6 +26,7 @@ function publicUser(user: {
     email: user.email,
     phone: user.phone,
     teamId: user.teamId,
+    isTeamLead: user.isTeamLead,
     mustChangePassword: user.mustChangePassword,
   };
 }
@@ -72,6 +74,7 @@ authRouter.get("/me", authenticate, async (req, res) => {
       email: req.user!.email,
       teamId: req.user!.teamId,
       teamName: req.user!.teamName,
+      isTeamLead: req.user!.isTeamLead,
       mustChangePassword: req.user!.mustChangePassword,
     },
     permissions: req.user!.permissions,

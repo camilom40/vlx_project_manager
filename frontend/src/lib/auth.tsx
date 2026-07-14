@@ -17,6 +17,7 @@ export interface Usuario {
   email: string;
   teamId: string | null;
   teamName: string | null;
+  isTeamLead: boolean;
   mustChangePassword: boolean;
 }
 

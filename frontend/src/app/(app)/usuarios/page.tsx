@@ -22,6 +22,7 @@ interface Usuario {
   email: string;
   phone: string | null;
   isActive: boolean;
+  isTeamLead: boolean;
   teamId: string | null;
   team: { id: string; name: string } | null;
 }
@@ -67,6 +68,7 @@ export default function UsuariosPage() {
       email: form.get("email"),
       phone: form.get("phone") || null,
       teamId: form.get("teamId") || null,
+      isTeamLead: form.get("isTeamLead") === "on",
     };
     try {
       if (editando) {
@@ -245,6 +247,20 @@ export default function UsuariosPage() {
               ))}
             </select>
           </div>
+          <div className="col-span-2">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                name="isTeamLead"
+                defaultChecked={editando?.isTeamLead ?? false}
+                className="h-4 w-4 rounded border-border accent-[var(--brand)]"
+              />
+              Líder de equipo
+              <span className="font-normal text-muted">
+                (puede asignar cotizaciones a los miembros de su equipo)
+              </span>
+            </label>
+          </div>
           <div className="col-span-2 flex gap-3">
             <button
               type="submit"
@@ -282,7 +298,16 @@ export default function UsuariosPage() {
               <tr key={u.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 font-medium">{u.name}</td>
                 <td className="px-4 py-3 text-muted">{u.email}</td>
-                <td className="px-4 py-3">{u.team?.name ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center gap-1.5">
+                    {u.team?.name ?? "—"}
+                    {u.isTeamLead && (
+                      <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
+                        Líder
+                      </span>
+                    )}
+                  </span>
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${

@@ -15,6 +15,9 @@ export const ALL_MODULES = Object.values(AppModule);
 // Nombre del equipo con acceso total implícito (definido por el spec)
 export const MANAGEMENT_TEAM = "Gerencia";
 
+// Equipo cotizador: sus líderes asignan cotizaciones a sus miembros
+export const BUDGET_TEAM = "Presupuesto";
+
 /**
  * Permisos efectivos de un usuario:
  * base del equipo, sobreescrita módulo a módulo por sus overrides.

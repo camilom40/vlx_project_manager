@@ -149,6 +149,15 @@ export async function teamMemberIds(teamName: string): Promise<string[]> {
   return users.map((u) => u.id);
 }
 
+/** Ids de los líderes activos de un equipo (por nombre). */
+export async function teamLeadIds(teamName: string): Promise<string[]> {
+  const users = await prisma.user.findMany({
+    where: { team: { name: teamName }, isActive: true, isTeamLead: true },
+    select: { id: true },
+  });
+  return users.map((u) => u.id);
+}
+
 /** Ids de los integrantes activos de los grupos de instaladores de un proyecto. */
 export async function projectInstallerIds(
   projectId: string,
