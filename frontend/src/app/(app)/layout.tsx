@@ -44,13 +44,14 @@ const NAV_GRUPOS: {
   },
 ];
 
-// Qué contador de pendientes muestra cada entrada del menú (por ruta, para
-// no repetir el badge en items que comparten módulo, como Carga de trabajo)
-const PENDIENTES_POR_RUTA: Record<string, string> = {
-  "/proyectos": "PROYECTOS",
-  "/cotizaciones": "COTIZACIONES",
-  "/produccion": "PRODUCCION",
-  "/garantias": "GARANTIAS",
+// Qué contadores de pendientes muestra cada entrada del menú (por ruta, para
+// no repetir el badge en items que comparten módulo, como Carga de trabajo).
+// Proyectos agrega los pendientes de etapas internas sin menú propio (contrato).
+const PENDIENTES_POR_RUTA: Record<string, string[]> = {
+  "/proyectos": ["PROYECTOS", "CONTRATOS"],
+  "/cotizaciones": ["COTIZACIONES"],
+  "/produccion": ["PRODUCCION"],
+  "/garantias": ["GARANTIAS"],
 };
 
 export default function AppLayout({
@@ -152,7 +153,10 @@ export default function AppLayout({
                   const contador =
                     item.href === "/notificaciones"
                       ? sinLeer
-                      : (pendientes[PENDIENTES_POR_RUTA[item.href] ?? ""] ?? 0);
+                      : (PENDIENTES_POR_RUTA[item.href] ?? []).reduce(
+                          (t, mod) => t + (pendientes[mod] ?? 0),
+                          0,
+                        );
                   return (
                     <Link
                       key={item.href}

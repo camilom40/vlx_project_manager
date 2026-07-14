@@ -14,10 +14,13 @@ const correo = (rol: string) => `${rol}-${SUFIJO}@test.vitralux.co`;
 
 const tokens: Record<string, string> = {};
 const ids: Record<string, string> = {};
+let testTeamId = "";
 let projectId = "";
 let projectId2 = "";
+let projectId3 = "";
 let contractId = "";
 let contractId2 = "";
+let contractId3 = "";
 
 async function crearUsuario(rol: string, equipo: string) {
   const team = await prisma.team.findUnique({ where: { name: equipo } });
@@ -80,8 +83,21 @@ beforeAll(async () => {
   await crearUsuario("tesoreria", "Tesorería");
   await crearUsuario("conta", "Contabilidad");
   await crearUsuario("compras", "Compras");
+  // Equipo de prueba con SOLO "Proyectos: ver" (sin CONTRATOS), para aislar el
+  // caso "pendiente por ser revisor" sin depender de permisos personalizados.
+  const testTeam = await prisma.team.create({
+    data: {
+      name: `[TEST] SoloProyectos ${SUFIJO}`,
+      permissions: {
+        create: { module: "PROYECTOS", canView: true, canEdit: false },
+      },
+    },
+  });
+  testTeamId = testTeam.id;
+  await crearUsuario("listador", `[TEST] SoloProyectos ${SUFIJO}`);
   projectId = await crearProyecto("Torre A");
   projectId2 = await crearProyecto("Torre B");
+  projectId3 = await crearProyecto("Torre C");
 });
 
 afterAll(async () => {
@@ -93,11 +109,21 @@ afterAll(async () => {
     where: { userId: { in: userIds } },
     data: { userId: null },
   });
-  await prisma.policy.deleteMany({ where: { projectId: { in: [projectId, projectId2] } } });
-  await prisma.advance.deleteMany({ where: { projectId: { in: [projectId, projectId2] } } });
-  await prisma.contract.deleteMany({ where: { projectId: { in: [projectId, projectId2] } } });
+  await prisma.policy.deleteMany({
+    where: { projectId: { in: [projectId, projectId2, projectId3] } },
+  });
+  await prisma.advance.deleteMany({
+    where: { projectId: { in: [projectId, projectId2, projectId3] } },
+  });
+  await prisma.contract.deleteMany({
+    where: { projectId: { in: [projectId, projectId2, projectId3] } },
+  });
   await prisma.project.deleteMany({ where: { name: { contains: SUFIJO } } });
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });
+  if (testTeamId) {
+    await prisma.teamPermission.deleteMany({ where: { teamId: testTeamId } });
+    await prisma.team.deleteMany({ where: { id: testTeamId } });
+  }
   await prisma.$disconnect();
 });
 
@@ -239,5 +265,27 @@ describe("flujo de contrato", () => {
     });
     const proj = await prisma.project.findUnique({ where: { id: projectId2 } });
     expect(proj?.purchasingUnlockedNotifiedAt).not.toBeNull();
+  });
+
+  it("el listado de proyectos marca requiereAccion para el revisor asignado", async () => {
+    // "listador" solo ve Proyectos (sin CONTRATOS): antes de ser revisor no
+    // tiene acción en ese proyecto (aísla el caso "pendiente por ser revisor").
+    const rec = await api("receptor").post(
+      `/api/projects/${projectId3}/contrato`,
+    );
+    contractId3 = rec.body.contract.id;
+    let lista = await api("listador").get("/api/projects");
+    let mio = lista.body.projects.find(
+      (p: { id: string }) => p.id === projectId3,
+    );
+    expect(mio.requiereAccion).toBe(false);
+    // Asignar a "listador" como revisor → el proyecto pide su acción
+    await api("receptor").post(
+      `/api/projects/${projectId3}/contrato/${contractId3}/asignar-revisor`,
+      { reviewerId: ids.listador },
+    );
+    lista = await api("listador").get("/api/projects");
+    mio = lista.body.projects.find((p: { id: string }) => p.id === projectId3);
+    expect(mio.requiereAccion).toBe(true);
   });
 });

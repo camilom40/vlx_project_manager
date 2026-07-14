@@ -6,6 +6,11 @@ import { revisarCandadoCompras } from "./etapa2";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
+  anticipoVerificado,
+  contratoRequiereAccion,
+  polizasResueltas,
+} from "../lib/responsabilidad";
+import {
   AppModule,
   AssignmentRole,
   Company,
@@ -14,6 +19,7 @@ import {
   ProjectStage,
   ProjectStatus,
   ProjectType,
+  TaskStatus,
 } from "../generated/prisma/enums";
 
 export const projectsRouter = Router();
@@ -38,6 +44,17 @@ const listInclude = {
     include: { group: { select: { id: true, name: true } } },
   },
   _count: { select: { children: true } },
+  // Para calcular "requiere mi acción" (etapa de contrato) por proyecto
+  contracts: {
+    select: {
+      status: true,
+      reviewerId: true,
+      requiresPolicy: true,
+      requiresAdvance: true,
+    },
+  },
+  policies: { select: { status: true } },
+  advances: { select: { status: true } },
 } as const;
 
 projectsRouter.get(
@@ -73,7 +90,40 @@ projectsRouter.get(
       include: listInclude,
       orderBy: { createdAt: "desc" },
     });
-    res.json({ projects });
+
+    // Tareas pendientes del usuario en estos proyectos (para la burbuja de fila)
+    const misTareas = await prisma.task.findMany({
+      where: {
+        projectId: { in: projects.map((p) => p.id) },
+        assigneeId: req.user!.id,
+        status: { in: [TaskStatus.PENDIENTE, TaskStatus.EN_PROGRESO] },
+      },
+      select: { projectId: true },
+    });
+    const conTareaMia = new Set(misTareas.map((t) => t.projectId));
+
+    // Marca "requiere mi acción" por proyecto (contrato + tareas asignadas);
+    // se quitan del payload los datos crudos usados solo para el cálculo.
+    const conFlag = projects.map((p) => {
+      const pr = polizasResueltas(p.policies);
+      const av = anticipoVerificado(p.advances);
+      const contratoAccion = p.contracts.some((c) =>
+        contratoRequiereAccion(req.user!, {
+          status: c.status,
+          reviewerId: c.reviewerId,
+          requiresPolicy: c.requiresPolicy,
+          requiresAdvance: c.requiresAdvance,
+          polizasResueltas: pr,
+          anticipoResuelto: av,
+        }),
+      );
+      const { contracts, policies, advances, ...rest } = p;
+      void contracts;
+      void policies;
+      void advances;
+      return { ...rest, requiereAccion: contratoAccion || conTareaMia.has(p.id) };
+    });
+    res.json({ projects: conFlag });
   },
 );
 

@@ -21,6 +21,7 @@ import {
   EsqueletoTabla,
   EstadoVacio,
   MensajeError,
+  PuntoAccion,
   Selector,
   Tarjeta,
   tonoEtapa,
@@ -41,6 +42,7 @@ interface ProyectoResumen {
   type: string;
   parentProject: { id: string; name: string } | null;
   _count: { children: number };
+  requiereAccion?: boolean;
 }
 
 export default function ProyectosPage() {
@@ -272,12 +274,15 @@ export default function ProyectosPage() {
                 className="border-b border-border last:border-0 hover:bg-brand-light/20"
               >
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/proyectos/${p.id}`}
-                    className="font-medium text-brand hover:underline"
-                  >
-                    {p.name}
-                  </Link>
+                  <span className="inline-flex items-center gap-2">
+                    <PuntoAccion visible={!!p.requiereAccion} />
+                    <Link
+                      href={`/proyectos/${p.id}`}
+                      className="font-medium text-brand hover:underline"
+                    >
+                      {p.name}
+                    </Link>
+                  </span>
                   {p.type === "ADICIONAL" && p.parentProject && (
                     <span className="block text-xs text-muted">
                       Adicional de{" "}
