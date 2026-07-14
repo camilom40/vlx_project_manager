@@ -17,6 +17,7 @@ import {
   Desplegable,
   Entrada,
   EstadoVacio,
+  Interruptor,
   MensajeError,
   Selector,
   Tarjeta,
@@ -354,40 +355,36 @@ export default function CotizacionesPage() {
           {/* Todas */}
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold">Todas las cotizaciones</h2>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={soloMias}
-                  onChange={(e) => setSoloMias(e.target.checked)}
-                  className="h-4 w-4 accent-[var(--brand)]"
-                />
+            <div className="flex flex-wrap items-center gap-2">
+              <Interruptor activo={soloMias} onCambio={setSoloMias}>
                 Solo las mías
-              </label>
-              <Selector
-                value={filtroResponsable}
-                onChange={(e) => setFiltroResponsable(e.target.value)}
-                className="max-w-[190px]"
-              >
-                <option value="">Todos los responsables</option>
-                {responsables.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-              </Selector>
-              <Selector
-                value={filtroEstado}
-                onChange={(e) => setFiltroEstado(e.target.value)}
-                className="max-w-[200px]"
-              >
-                <option value="">Todos los estados</option>
-                {Object.entries(ESTADOS_COTIZACION).map(([v, l]) => (
-                  <option key={v} value={v}>
-                    {l}
-                  </option>
-                ))}
-              </Selector>
+              </Interruptor>
+              <div className="w-48">
+                <Selector
+                  value={filtroResponsable}
+                  onChange={(e) => setFiltroResponsable(e.target.value)}
+                >
+                  <option value="">Todos los responsables</option>
+                  {responsables.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </Selector>
+              </div>
+              <div className="w-48">
+                <Selector
+                  value={filtroEstado}
+                  onChange={(e) => setFiltroEstado(e.target.value)}
+                >
+                  <option value="">Todos los estados</option>
+                  {Object.entries(ESTADOS_COTIZACION).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </Selector>
+              </div>
             </div>
           </div>
           <Tarjeta className="mt-3 overflow-hidden">

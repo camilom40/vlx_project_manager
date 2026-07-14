@@ -283,6 +283,47 @@ export function EstadoVacio({ children }: { children: React.ReactNode }) {
 }
 
 /**
+ * Interruptor tipo pill para filtros: misma altura que Entrada/Selector
+ * para que las filas de filtros queden alineadas.
+ */
+export function Interruptor({
+  activo,
+  onCambio,
+  children,
+}: {
+  activo: boolean;
+  onCambio: (valor: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={activo}
+      onClick={() => onCambio(!activo)}
+      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition duration-150 ${
+        activo
+          ? "border-brand/50 bg-brand-light/30 text-brand"
+          : "border-border bg-background text-muted hover:text-foreground"
+      }`}
+    >
+      <span
+        className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors duration-150 ${
+          activo ? "bg-brand" : "bg-border"
+        }`}
+      >
+        <span
+          className={`inline-block h-3 w-3 translate-x-0.5 transform rounded-full bg-white shadow transition-transform duration-150 ${
+            activo ? "translate-x-3.5" : ""
+          }`}
+        />
+      </span>
+      {children}
+    </button>
+  );
+}
+
+/**
  * Interruptor "Animaciones": fuerza las animaciones activas o inactivas
  * dentro de la app, sin importar la preferencia de movimiento reducido
  * del sistema operativo. Vive en la sidebar.
