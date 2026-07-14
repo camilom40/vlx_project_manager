@@ -109,7 +109,16 @@ export const CANALES_CONTACTO: Record<string, string> = {
 export const ESTADOS_CONTRATO: Record<string, string> = {
   RECIBIDO: "Recibido",
   EN_REVISION: "En revisión",
+  PENDIENTE_FIRMA: "Pendiente de firma",
   RECHAZADO_CON_OBSERVACIONES: "Rechazado con observaciones",
+  FIRMADO: "Firmado",
+};
+
+export const ACCION_CONTRATO: Record<string, string> = {
+  RECIBIDO: "Pendiente de asignar revisor",
+  EN_REVISION: "En revisión (anticipo y pólizas)",
+  PENDIENTE_FIRMA: "Pendiente de firma de Gerencia",
+  RECHAZADO_CON_OBSERVACIONES: "Rechazado: corregir y reenviar",
   FIRMADO: "Firmado",
 };
 

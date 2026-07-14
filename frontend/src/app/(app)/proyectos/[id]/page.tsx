@@ -56,6 +56,7 @@ interface Proyecto {
   notes: string | null;
   earlyStartWithoutAdvance: boolean;
   earlyStartAuthorizedBy: UsuarioMin | null;
+  soyRevisorContrato: boolean;
   originQuote: {
     id: string;
     title: string;
@@ -375,7 +376,11 @@ export default function ProyectoDetallePage() {
 
       {/* Pestañas por módulo (según permisos) */}
       <div className="mt-6 flex flex-wrap gap-1 border-b border-border">
-        {TABS.filter((t) => puede(t.modulo)).map((t) => (
+        {TABS.filter(
+          (t) =>
+            puede(t.modulo) ||
+            (t.id === "contrato" && proyecto.soyRevisorContrato),
+        ).map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
@@ -395,7 +400,10 @@ export default function ProyectoDetallePage() {
           <TabContrato
             projectId={proyecto.id}
             currency={proyecto.currency}
-            puedeEditar={puede("CONTRATOS", "editar")}
+            puedeEditarContrato={puede("CONTRATOS", "editar")}
+            puedeEditarPolizas={puede("POLIZAS", "editar")}
+            puedeEditarAnticipos={puede("ANTICIPOS", "editar")}
+            puedeEditarCompras={puede("COMPRAS", "editar")}
           />
         </div>
       )}

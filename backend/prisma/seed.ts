@@ -50,6 +50,8 @@ const TEAM_PERMISSIONS: Record<string, Partial<Record<AppModule, "ver" | "editar
   },
   Tesorería: {
     PROYECTOS: "ver",
+    CONTRATOS: "ver",
+    POLIZAS: "editar", // Tesorería solicita/gestiona las pólizas
     ANTICIPOS: "editar",
     GARANTIAS: "editar",
     NOTIFICACIONES: "ver",
@@ -57,6 +59,7 @@ const TEAM_PERMISSIONS: Record<string, Partial<Record<AppModule, "ver" | "editar
   Gerencia: {}, // acceso total implícito
   Compras: {
     PROYECTOS: "ver",
+    CONTRATOS: "ver", // ve el estado del candado (pólizas/anticipo)
     COMPRAS: "editar",
     NOTIFICACIONES: "ver",
   },

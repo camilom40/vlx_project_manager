@@ -2,6 +2,7 @@ import { Router } from "express";
 import { logAudit } from "../lib/audit";
 import { notify } from "../lib/notifications";
 import { parseFecha } from "../lib/fechas";
+import { revisarCandadoCompras } from "./etapa2";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
@@ -260,13 +261,19 @@ projectsRouter.get(
           orderBy: { createdAt: "desc" },
         },
         earlyStartAuthorizedBy: { select: { id: true, name: true } },
+        contracts: { select: { reviewerId: true } },
       },
     });
     if (!project) {
       res.status(404).json({ error: "Proyecto no encontrado." });
       return;
     }
-    res.json({ project });
+    // ¿El usuario es el revisor asignado de algún contrato? (para ver la pestaña
+    // Contrato aunque no tenga el módulo — el revisor puede ser cualquier usuario)
+    const soyRevisorContrato = project.contracts.some(
+      (c) => c.reviewerId === req.user!.id,
+    );
+    res.json({ project: { ...project, soyRevisorContrato } });
   },
 );
 
@@ -351,6 +358,10 @@ projectsRouter.put(
       },
     });
     await logAudit(req.user!.id, "editar_proyecto", "Project", project.id);
+    // Autorizar inicio sin anticipo puede liberar el candado de compras
+    if (earlyStartWithoutAdvance) {
+      await revisarCandadoCompras(project.id);
+    }
     res.json({ project });
   },
 );

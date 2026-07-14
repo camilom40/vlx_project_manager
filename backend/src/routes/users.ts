@@ -31,6 +31,23 @@ usersRouter.get("/", authorize(AppModule.USUARIOS, "ver"), async (_req, res) => 
   res.json({ users });
 });
 
+// Lista mínima de usuarios activos para selectores de asignación (revisor de
+// contrato, etc.). No expone datos sensibles; no requiere el módulo Usuarios.
+usersRouter.get("/asignables", async (_req, res) => {
+  const users = await prisma.user.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true, team: { select: { name: true } } },
+    orderBy: { name: "asc" },
+  });
+  res.json({
+    users: users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      teamName: u.team?.name ?? null,
+    })),
+  });
+});
+
 usersRouter.post("/", authorize(AppModule.USUARIOS, "editar"), async (req, res) => {
   const { name, email, phone, teamId, password, isTeamLead } = req.body ?? {};
   if (!name || !email) {

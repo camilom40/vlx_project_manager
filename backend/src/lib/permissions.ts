@@ -21,6 +21,9 @@ export const BUDGET_TEAM = "Presupuesto";
 // Equipo que crea centros de costo y genera el proyecto de la cotización aceptada
 export const ACCOUNTING_TEAM = "Contabilidad";
 
+// Equipo que solicita/gestiona pólizas con las aseguradoras
+export const TREASURY_TEAM = "Tesorería";
+
 /**
  * Permisos efectivos de un usuario:
  * base del equipo, sobreescrita módulo a módulo por sus overrides.

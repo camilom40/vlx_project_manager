@@ -81,6 +81,7 @@ enum QuoteRejectionReason {
 enum ContractStatus {
   RECIBIDO
   EN_REVISION
+  PENDIENTE_FIRMA
   RECHAZADO_CON_OBSERVACIONES
   FIRMADO
 }
@@ -224,6 +225,7 @@ model User {
   quotesManagementApproved Quote[]                @relation("QuoteManagementApprover")
   quoteContactLogs         QuoteContactLog[]
   contractsReviewed        Contract[]             @relation("ContractReviewer")
+  contractsToReview        Contract[]             @relation("ContractAssignedReviewer")
   advancesVerified         Advance[]              @relation("AdvanceVerifier")
   actasVanos               ActaVanos[]            @relation("ActaVanosSupervisor")
   remisionesSigned         Remision[]             @relation("RemisionSigner")
@@ -355,6 +357,9 @@ model Project {
   earlyStartWithoutAdvance Boolean @default(false)
   earlyStartAuthorizedById String?
   earlyStartAuthorizedBy   User?   @relation("EarlyStartAuthorizer", fields: [earlyStartAuthorizedById], references: [id])
+
+  // Dedup de la notificación "Compras puede proceder" (candado liberado)
+  purchasingUnlockedNotifiedAt DateTime?
 
   assignments     ProjectAssignment[]
   installerGroups ProjectInstallerGroup[]
@@ -520,6 +525,11 @@ model Contract {
   receivedAt       DateTime?
   reviewedById     String?
   reviewedBy       User?          @relation("ContractReviewer", fields: [reviewedById], references: [id])
+  reviewerId       String? // revisor asignado (puede ser cualquier usuario)
+  reviewer         User?          @relation("ContractAssignedReviewer", fields: [reviewerId], references: [id])
+  requiresPolicy   Boolean        @default(true) // el revisor lo pone en false: "sin póliza"
+  requiresAdvance  Boolean        @default(true) // el revisor lo pone en false: "sin anticipo"
+  reviewSubmittedAt DateTime? // cuándo el revisor mandó a firma
   signedAt         DateTime? // firma de Gerencia
 
   policies Policy[]

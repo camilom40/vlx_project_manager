@@ -2,10 +2,16 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate } from "../middleware/auth";
 import { can } from "../lib/permissions";
-import { cotizacionRequiereAccion } from "../lib/responsabilidad";
+import {
+  anticipoVerificado,
+  contratoRequiereAccion,
+  cotizacionRequiereAccion,
+  polizasResueltas,
+} from "../lib/responsabilidad";
 import {
   AppModule,
   AssignmentRole,
+  ContractStatus,
   DTStatus,
   QuoteStatus,
   TaskStatus,
@@ -49,6 +55,53 @@ pendientesRouter.get("/", async (req, res) => {
     });
     pendientes[AppModule.COTIZACIONES] = abiertas.filter((q) =>
       cotizacionRequiereAccion(user, q),
+    ).length;
+  }
+
+  // Contratos cuyo balón está en mi cancha (misma regla que el TabContrato)
+  if (can(user.permissions, AppModule.CONTRATOS, "ver")) {
+    const contratos = await prisma.contract.findMany({
+      where: {
+        project: { status: "ACTIVO" },
+        OR: [
+          {
+            status: {
+              in: [
+                ContractStatus.RECIBIDO,
+                ContractStatus.EN_REVISION,
+                ContractStatus.PENDIENTE_FIRMA,
+                ContractStatus.RECHAZADO_CON_OBSERVACIONES,
+              ],
+            },
+          },
+          {
+            status: ContractStatus.FIRMADO,
+            project: { purchasingUnlockedNotifiedAt: null },
+          },
+        ],
+      },
+      select: {
+        status: true,
+        reviewerId: true,
+        requiresPolicy: true,
+        requiresAdvance: true,
+        project: {
+          select: {
+            policies: { select: { status: true } },
+            advances: { select: { status: true } },
+          },
+        },
+      },
+    });
+    pendientes[AppModule.CONTRATOS] = contratos.filter((c) =>
+      contratoRequiereAccion(user, {
+        status: c.status,
+        reviewerId: c.reviewerId,
+        requiresPolicy: c.requiresPolicy,
+        requiresAdvance: c.requiresAdvance,
+        polizasResueltas: polizasResueltas(c.project.policies),
+        anticipoResuelto: anticipoVerificado(c.project.advances),
+      }),
     ).length;
   }
 

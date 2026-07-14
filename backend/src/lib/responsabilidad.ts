@@ -3,8 +3,16 @@ import {
   ACCOUNTING_TEAM,
   BUDGET_TEAM,
   MANAGEMENT_TEAM,
+  TREASURY_TEAM,
+  can,
 } from "./permissions";
-import { QuoteStatus } from "../generated/prisma/enums";
+import {
+  AdvanceStatus,
+  AppModule,
+  ContractStatus,
+  PolicyStatus,
+  QuoteStatus,
+} from "../generated/prisma/enums";
 
 // ============================================================
 // ÚNICA fuente de verdad de "el balón está en tu cancha" para
@@ -60,6 +68,113 @@ export function cotizacionRequiereAccion(
       return user.teamName === ACCOUNTING_TEAM && !q.projectId;
     default:
       // ENVIADA / SIN_RESPUESTA (se espera al cliente) y RECHAZADA (cerrada)
+      return false;
+  }
+}
+
+// ============================================================
+// Contrato → pólizas / anticipos → compras.
+// Misma idea: quién es el dueño de cada estado. La consumen el
+// contador de pendientes del módulo Contratos, el punto de acción
+// del TabContrato (vía el flag que devuelve el GET de contratos) y
+// los disparadores de notificación. Fuente única: SOLO aquí.
+// ============================================================
+
+// Estados de póliza que cuentan como "resuelta" para liberar Compras
+const POLIZAS_RESUELTAS = new Set<PolicyStatus>([
+  PolicyStatus.EXPEDIDA,
+  PolicyStatus.PAGADA,
+  PolicyStatus.ENVIADA_AL_CLIENTE,
+]);
+
+export interface ContratoResponsabilidad {
+  status: ContractStatus;
+  reviewerId: string | null;
+  requiresPolicy: boolean;
+  requiresAdvance: boolean;
+  // Estado agregado de pólizas y anticipos del proyecto (para el candado)
+  polizasResueltas: boolean;
+  anticipoResuelto: boolean;
+}
+
+/**
+ * ¿Puede este usuario revisar/editar este contrato? El revisor asignado
+ * (cualquier usuario), quien tenga el módulo Contratos, o Gerencia.
+ */
+export function puedeRevisarContrato(
+  user: AuthUser,
+  contract: { reviewerId: string | null },
+): boolean {
+  return (
+    contract.reviewerId === user.id ||
+    user.teamName === MANAGEMENT_TEAM ||
+    can(user.permissions, AppModule.CONTRATOS, "editar")
+  );
+}
+
+/** ¿El candado de compras está liberado? (para notificar a Compras). */
+export function comprasLiberadas(project: {
+  requiresPolicy: boolean;
+  requiresAdvance: boolean;
+  polizasResueltas: boolean;
+  anticipoVerificado: boolean;
+  earlyStartWithoutAdvance: boolean;
+}): boolean {
+  const polizasOk = !project.requiresPolicy || project.polizasResueltas;
+  const anticipoOk =
+    !project.requiresAdvance ||
+    project.anticipoVerificado ||
+    project.earlyStartWithoutAdvance;
+  return polizasOk && anticipoOk;
+}
+
+/** Helper: ¿todas las pólizas registradas están resueltas y hay al menos una? */
+export function polizasResueltas(
+  policies: { status: PolicyStatus }[],
+): boolean {
+  return policies.length > 0 && policies.every((p) => POLIZAS_RESUELTAS.has(p.status));
+}
+
+/** Helper: ¿hay algún anticipo verificado en banco? */
+export function anticipoVerificado(
+  advances: { status: AdvanceStatus }[],
+): boolean {
+  return advances.some((a) => a.status === AdvanceStatus.VERIFICADO);
+}
+
+/** ¿Este contrato requiere una acción de ESTE usuario ahora mismo? */
+export function contratoRequiereAccion(
+  user: AuthUser,
+  c: ContratoResponsabilidad,
+): boolean {
+  const esRevisor = c.reviewerId === user.id;
+  const esGerencia = user.teamName === MANAGEMENT_TEAM;
+  const gestionaPolizas =
+    can(user.permissions, AppModule.POLIZAS, "editar") &&
+    (user.teamName === ACCOUNTING_TEAM || user.teamName === TREASURY_TEAM);
+  const gestionaAnticipos =
+    can(user.permissions, AppModule.ANTICIPOS, "editar") &&
+    (user.teamName === ACCOUNTING_TEAM || user.teamName === TREASURY_TEAM);
+
+  switch (c.status) {
+    case ContractStatus.RECIBIDO:
+      // Asignar revisor: quien tenga Contratos editar (o Gerencia)
+      return can(user.permissions, AppModule.CONTRATOS, "editar");
+    case ContractStatus.EN_REVISION:
+      // Revisar (anticipo + pólizas requeridas) y enviar a firma: el revisor
+      return esRevisor;
+    case ContractStatus.PENDIENTE_FIRMA:
+      // Firmar o rechazar: Gerencia
+      return esGerencia;
+    case ContractStatus.RECHAZADO_CON_OBSERVACIONES:
+      // Corregir y reenviar: el revisor
+      return esRevisor;
+    case ContractStatus.FIRMADO:
+      // Falta cerrar el candado de compras
+      if (c.requiresPolicy && !c.polizasResueltas && gestionaPolizas) return true;
+      if (c.requiresAdvance && !c.anticipoResuelto && gestionaAnticipos) return true;
+      return false;
+    default:
       return false;
   }
 }
