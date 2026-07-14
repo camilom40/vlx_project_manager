@@ -24,6 +24,7 @@ export const MODULOS: Record<string, string> = {
 
 export const ROLES_ASIGNACION: Record<string, string> = {
   SUPERVISOR: "Supervisor de obra",
+  SUPERVISOR_SISO: "Supervisor SISO",
   COTIZADOR: "Cotizador",
   PLANEADOR: "Planeador",
   JEFE_TALLER: "Jefe de taller",

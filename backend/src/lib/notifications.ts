@@ -131,7 +131,13 @@ export async function notify(
 /** Ids de los usuarios asignados a un proyecto en ciertos roles. */
 export async function projectRoleUserIds(
   projectId: string,
-  roles: ("SUPERVISOR" | "COTIZADOR" | "PLANEADOR" | "JEFE_TALLER")[],
+  roles: (
+    | "SUPERVISOR"
+    | "SUPERVISOR_SISO"
+    | "COTIZADOR"
+    | "PLANEADOR"
+    | "JEFE_TALLER"
+  )[],
 ): Promise<string[]> {
   const assignments = await prisma.projectAssignment.findMany({
     where: { projectId, role: { in: roles } },

@@ -160,6 +160,7 @@ enum NotificationChannel {
 
 enum AssignmentRole {
   SUPERVISOR
+  SUPERVISOR_SISO
   COTIZADOR
   PLANEADOR
   JEFE_TALLER
