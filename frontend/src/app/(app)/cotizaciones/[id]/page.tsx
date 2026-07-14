@@ -19,6 +19,7 @@ import {
   BotonSecundario,
   Campo,
   Entrada,
+  EntradaMoneda,
   MensajeError,
   Selector,
   Tarjeta,
@@ -96,6 +97,9 @@ export default function CotizacionDetallePage() {
   const [editando, setEditando] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [mostrarGenerar, setMostrarGenerar] = useState(false);
+  // Para calcular el margen en dinero en vivo mientras se edita
+  const [montoEdit, setMontoEdit] = useState<number | null>(null);
+  const [margenEdit, setMargenEdit] = useState<number | null>(null);
 
   const puedeEditar = puede("COTIZACIONES", "editar");
   const puedeAsignar = Boolean(
@@ -589,7 +593,15 @@ export default function CotizacionDetallePage() {
             <h2 className="font-semibold">Datos de la cotización</h2>
             {puedeGestionar && (
               <button
-                onClick={() => setEditando((v) => !v)}
+                onClick={() => {
+                  if (!editando) {
+                    setMontoEdit(q.amount !== null ? Number(q.amount) : null);
+                    setMargenEdit(
+                      q.marginPercent !== null ? Number(q.marginPercent) : null,
+                    );
+                  }
+                  setEditando((v) => !v);
+                }}
                 className="text-xs font-medium text-brand hover:underline"
               >
                 {editando ? "Cancelar" : "Editar"}
@@ -622,9 +634,22 @@ export default function CotizacionDetallePage() {
               <div className="flex justify-between">
                 <dt className="text-muted">Margen</dt>
                 <dd>
-                  {q.marginPercent !== null
-                    ? porcentaje(q.marginPercent)
-                    : "—"}
+                  {q.marginPercent !== null ? (
+                    <>
+                      {porcentaje(q.marginPercent)}
+                      {q.amount !== null && (
+                        <span className="ml-2 font-mono text-xs text-muted">
+                          ≈{" "}
+                          {moneda(
+                            (Number(q.amount) * Number(q.marginPercent)) / 100,
+                            q.currency,
+                          )}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    "—"
+                  )}
                 </dd>
               </div>
               <div className="flex justify-between">
@@ -669,12 +694,11 @@ export default function CotizacionDetallePage() {
                 />
               </Campo>
               <Campo etiqueta="Monto total">
-                <Entrada
+                <EntradaMoneda
                   name="amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  defaultValue={q.amount ?? ""}
+                  defaultValue={q.amount}
+                  placeholder="0"
+                  onValorCambia={setMontoEdit}
                 />
               </Campo>
               <Campo etiqueta="Margen (% sobre precio de venta)">
@@ -685,7 +709,18 @@ export default function CotizacionDetallePage() {
                   max="100"
                   step="0.1"
                   defaultValue={q.marginPercent ?? ""}
+                  onChange={(e) =>
+                    setMargenEdit(
+                      e.target.value ? Number(e.target.value) : null,
+                    )
+                  }
                 />
+                {montoEdit !== null && margenEdit !== null && (
+                  <p className="mt-1 font-mono text-xs text-muted">
+                    ≈ {moneda((montoEdit * margenEdit) / 100, q.currency)} de
+                    margen
+                  </p>
+                )}
               </Campo>
               <Campo etiqueta="Descripción">
                 <Entrada

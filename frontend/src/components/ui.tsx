@@ -251,6 +251,49 @@ export function Entrada(props: InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+/**
+ * Entrada de montos con separadores de miles (formato es-CO) mientras se
+ * escribe. El valor crudo (solo dígitos) viaja en un input oculto con `name`
+ * para que FormData lo lea igual que una Entrada normal.
+ */
+export function EntradaMoneda({
+  name,
+  defaultValue,
+  onValorCambia,
+  placeholder,
+}: {
+  name: string;
+  defaultValue?: string | number | null;
+  onValorCambia?: (valor: number | null) => void;
+  placeholder?: string;
+}) {
+  const inicial =
+    defaultValue !== null && defaultValue !== undefined && defaultValue !== ""
+      ? String(Math.round(Number(defaultValue)))
+      : "";
+  const [crudo, setCrudo] = useState(inicial);
+  const formateado = crudo
+    ? new Intl.NumberFormat("es-CO").format(Number(crudo))
+    : "";
+  return (
+    <>
+      <input type="hidden" name={name} value={crudo} />
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder={placeholder}
+        value={formateado}
+        onChange={(e) => {
+          const digitos = e.target.value.replace(/\D/g, "").slice(0, 14);
+          setCrudo(digitos);
+          onValorCambia?.(digitos ? Number(digitos) : null);
+        }}
+        className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+      />
+    </>
+  );
+}
+
 export function Selector(props: SelectHTMLAttributes<HTMLSelectElement>) {
   const { className = "", ...rest } = props;
   return (
