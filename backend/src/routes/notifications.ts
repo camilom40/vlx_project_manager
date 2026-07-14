@@ -28,6 +28,14 @@ notificationsRouter.put("/leer-todas", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Eliminar de mi bandeja todo lo ya leído
+notificationsRouter.delete("/leidas", async (req, res) => {
+  const r = await prisma.notification.deleteMany({
+    where: { recipientId: req.user!.id, read: true },
+  });
+  res.json({ eliminadas: r.count });
+});
+
 notificationsRouter.put("/:id/leer", async (req, res) => {
   const n = await prisma.notification.findUnique({
     where: { id: String(req.params.id) },

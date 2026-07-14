@@ -51,14 +51,25 @@ export default function NotificacionesPage() {
         <h1 className="text-2xl font-semibold tracking-tight">
           Notificaciones
         </h1>
-        <BotonSecundario
-          onClick={async () => {
-            await api("/api/notifications/leer-todas", { method: "PUT" });
-            await cargar();
-          }}
-        >
-          Marcar todas como leídas
-        </BotonSecundario>
+        <div className="flex gap-2">
+          <BotonSecundario
+            onClick={async () => {
+              await api("/api/notifications/leer-todas", { method: "PUT" });
+              await cargar();
+            }}
+          >
+            Marcar todas como leídas
+          </BotonSecundario>
+          <BotonSecundario
+            disabled={!notificaciones.some((n) => n.read)}
+            onClick={async () => {
+              await api("/api/notifications/leidas", { method: "DELETE" });
+              await cargar();
+            }}
+          >
+            Eliminar leídas
+          </BotonSecundario>
+        </div>
       </div>
       <div className="mt-4">
         <MensajeError>{error}</MensajeError>
