@@ -471,10 +471,16 @@ quotesRouter.put(
     if (marginPercent !== undefined) data.marginPercent = marginPercent;
     if (requiresManagementApproval !== undefined)
       data.requiresManagementApproval = Boolean(requiresManagementApproval);
-    // El cotizador marca que terminó de elaborarla → pasa a revisión
+    // El cotizador marca que terminó de elaborarla → pasa a revisión.
+    // Las aprobaciones de ciclos anteriores se limpian: una cotización
+    // reelaborada (p. ej. tras cambios solicitados) exige re-aprobación.
     if (completed) {
       data.completedAt = new Date();
       data.status = QuoteStatus.EN_REVISION;
+      data.budgetApprovedById = null;
+      data.budgetApprovedAt = null;
+      data.managementApprovedById = null;
+      data.managementApprovedAt = null;
     }
     const quote = await prisma.quote.update({
       where: { id: existing.id },

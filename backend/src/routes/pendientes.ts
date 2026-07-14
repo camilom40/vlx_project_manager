@@ -7,6 +7,7 @@ import {
   AssignmentRole,
   DTStatus,
   QuoteStatus,
+  TaskStatus,
   WarrantyStatus,
 } from "../generated/prisma/enums";
 
@@ -21,23 +22,62 @@ pendientesRouter.get("/", async (req, res) => {
   const pendientes: Record<string, number> = {};
 
   if (can(user.permissions, AppModule.COTIZACIONES, "ver")) {
+    const esGerencia = user.teamName === MANAGEMENT_TEAM;
     const puedeAsignar =
-      user.teamName === MANAGEMENT_TEAM ||
-      (user.isTeamLead && user.teamName === BUDGET_TEAM);
-    const [sinAsignar, mias] = await Promise.all([
+      esGerencia || (user.isTeamLead && user.teamName === BUDGET_TEAM);
+    const [sinAsignar, porAprobar, mias] = await Promise.all([
+      // El balón está en la cancha del líder: asignar las ingresadas
       puedeAsignar
         ? prisma.quote.count({ where: { status: QuoteStatus.INGRESADA } })
         : Promise.resolve(0),
+      // ...y aprobar las que están en revisión (Gerencia también las suyas)
+      puedeAsignar
+        ? prisma.quote.count({
+            where: {
+              status: QuoteStatus.EN_REVISION,
+              OR: [
+                { budgetApprovedAt: null },
+                ...(esGerencia
+                  ? [
+                      {
+                        requiresManagementApproval: true,
+                        managementApprovedAt: null,
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          })
+        : Promise.resolve(0),
+      // El balón está en la cancha del cotizador: elaborar, enviar la
+      // aprobada al cliente, o generar el proyecto de la aceptada
       prisma.quote.count({
         where: {
           quoterId: user.id,
-          status: {
-            in: [QuoteStatus.BORRADOR, QuoteStatus.CAMBIOS_SOLICITADOS],
-          },
+          OR: [
+            {
+              status: {
+                in: [QuoteStatus.BORRADOR, QuoteStatus.CAMBIOS_SOLICITADOS],
+              },
+            },
+            { status: QuoteStatus.APROBADA },
+            { status: QuoteStatus.ACEPTADA, projectId: null },
+          ],
         },
       }),
     ]);
-    pendientes[AppModule.COTIZACIONES] = sinAsignar + mias;
+    pendientes[AppModule.COTIZACIONES] = sinAsignar + porAprobar + mias;
+  }
+
+  // Tareas de proyecto asignadas a mí que dependen de mí (no bloqueadas)
+  if (can(user.permissions, AppModule.PROYECTOS, "ver")) {
+    pendientes[AppModule.PROYECTOS] = await prisma.task.count({
+      where: {
+        assigneeId: user.id,
+        status: { in: [TaskStatus.PENDIENTE, TaskStatus.EN_PROGRESO] },
+        project: { status: "ACTIVO" },
+      },
+    });
   }
 
   if (can(user.permissions, AppModule.PRODUCCION, "ver")) {
