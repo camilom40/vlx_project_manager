@@ -16,8 +16,11 @@ const TEAM_PERMISSIONS: Record<string, Partial<Record<AppModule, "ver" | "editar
     NOTIFICACIONES: "ver",
   },
   Contabilidad: {
-    PROYECTOS: "ver",
+    // Contabilidad crea el centro de costo y genera el proyecto de la
+    // cotización aceptada (necesita ver cotizaciones y editar proyectos)
+    PROYECTOS: "editar",
     CLIENTES: "ver",
+    COTIZACIONES: "ver",
     CONTRATOS: "ver",
     POLIZAS: "editar",
     ANTICIPOS: "editar",

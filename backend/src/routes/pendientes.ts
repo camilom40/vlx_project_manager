@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate } from "../middleware/auth";
-import { BUDGET_TEAM, can, MANAGEMENT_TEAM } from "../lib/permissions";
+import {
+  ACCOUNTING_TEAM,
+  BUDGET_TEAM,
+  can,
+  MANAGEMENT_TEAM,
+} from "../lib/permissions";
 import {
   AppModule,
   AssignmentRole,
@@ -25,7 +30,8 @@ pendientesRouter.get("/", async (req, res) => {
     const esGerencia = user.teamName === MANAGEMENT_TEAM;
     const puedeAsignar =
       esGerencia || (user.isTeamLead && user.teamName === BUDGET_TEAM);
-    const [sinAsignar, porAprobar, mias] = await Promise.all([
+    const esContabilidad = user.teamName === ACCOUNTING_TEAM;
+    const [sinAsignar, porAprobar, porGenerarProyecto, mias] = await Promise.all([
       // El balón está en la cancha del líder: asignar las ingresadas
       puedeAsignar
         ? prisma.quote.count({ where: { status: QuoteStatus.INGRESADA } })
@@ -49,8 +55,13 @@ pendientesRouter.get("/", async (req, res) => {
             },
           })
         : Promise.resolve(0),
-      // El balón está en la cancha del cotizador: elaborar, enviar la
-      // aprobada al cliente, o generar el proyecto de la aceptada
+      // Aceptadas sin proyecto: Contabilidad crea el CC y genera el proyecto
+      esContabilidad
+        ? prisma.quote.count({
+            where: { status: QuoteStatus.ACEPTADA, projectId: null },
+          })
+        : Promise.resolve(0),
+      // El balón está en la cancha del cotizador: elaborar o enviar la aprobada
       prisma.quote.count({
         where: {
           quoterId: user.id,
@@ -61,12 +72,12 @@ pendientesRouter.get("/", async (req, res) => {
               },
             },
             { status: QuoteStatus.APROBADA },
-            { status: QuoteStatus.ACEPTADA, projectId: null },
           ],
         },
       }),
     ]);
-    pendientes[AppModule.COTIZACIONES] = sinAsignar + porAprobar + mias;
+    pendientes[AppModule.COTIZACIONES] =
+      sinAsignar + porAprobar + porGenerarProyecto + mias;
   }
 
   // Tareas de proyecto asignadas a mí que dependen de mí (no bloqueadas)

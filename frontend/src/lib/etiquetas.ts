@@ -85,7 +85,7 @@ export const ACCION_COTIZACION: Record<string, string> = {
   APROBADA: "Pendiente de envío al cliente",
   ENVIADA: "Esperando respuesta del cliente",
   SIN_RESPUESTA: "Esperando respuesta del cliente",
-  ACEPTADA: "Pendiente de generar proyecto",
+  ACEPTADA: "Pendiente de generar proyecto (Contabilidad)",
   RECHAZADA: "Cerrada: rechazada por el cliente",
 };
 

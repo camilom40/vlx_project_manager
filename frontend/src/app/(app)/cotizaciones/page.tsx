@@ -197,7 +197,8 @@ export default function CotizacionesPage() {
       case "APROBADA":
         return esMia;
       case "ACEPTADA":
-        return esMia && !q.project;
+        // Contabilidad crea el centro de costo y genera el proyecto
+        return usuario?.teamName === "Contabilidad" && !q.project;
       default:
         return false;
     }

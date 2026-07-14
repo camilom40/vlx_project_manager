@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
 import { notify, teamLeadIds, teamMemberIds } from "../lib/notifications";
-import { BUDGET_TEAM, MANAGEMENT_TEAM } from "../lib/permissions";
+import { ACCOUNTING_TEAM, BUDGET_TEAM, MANAGEMENT_TEAM } from "../lib/permissions";
 import { prisma } from "../lib/prisma";
 import { Prisma } from "../generated/prisma/client";
 import { authenticate, authorize, AuthUser } from "../middleware/auth";
@@ -707,25 +707,27 @@ quotesRouter.post(
       estado,
       razon,
     });
-    // La respuesta del cliente le devuelve el balón al cotizador responsable
-    if (updated.quoterId && updated.quoterId !== req.user!.id) {
-      if (estado === QuoteStatus.CAMBIOS_SOLICITADOS) {
-        void notify(
-          [updated.quoterId],
-          "cotizacion.cambios_solicitados",
-          `Cambios solicitados: ${updated.title}`,
-          `El cliente ${updated.clientName} pidió cambios en la cotización "${updated.title}". Ajústala y pásala de nuevo a revisión.`,
-          null,
-        );
-      } else if (estado === QuoteStatus.ACEPTADA) {
-        void notify(
-          [updated.quoterId],
-          "cotizacion.aceptada",
-          `Cotización aceptada: ${updated.title}`,
-          `El cliente ${updated.clientName} aceptó la cotización "${updated.title}". Genera el proyecto para arrancar la etapa de contrato.`,
-          null,
-        );
-      }
+    // La respuesta del cliente mueve el balón: cambios → cotizador;
+    // aceptada → Contabilidad crea el centro de costo y genera el proyecto
+    if (estado === QuoteStatus.CAMBIOS_SOLICITADOS && updated.quoterId) {
+      void notify(
+        [updated.quoterId].filter((id) => id !== req.user!.id),
+        "cotizacion.cambios_solicitados",
+        `Cambios solicitados: ${updated.title}`,
+        `El cliente ${updated.clientName} pidió cambios en la cotización "${updated.title}". Ajústala y pásala de nuevo a revisión.`,
+        null,
+      );
+    } else if (estado === QuoteStatus.ACEPTADA) {
+      const contabilidad = await teamMemberIds(ACCOUNTING_TEAM);
+      void notify(
+        [...contabilidad, ...(updated.quoterId ? [updated.quoterId] : [])].filter(
+          (id) => id !== req.user!.id,
+        ),
+        "cotizacion.aceptada",
+        `Cotización aceptada: ${updated.title}`,
+        `El cliente ${updated.clientName} aceptó la cotización "${updated.title}". Contabilidad debe crear el centro de costo y generar el proyecto.`,
+        null,
+      );
     }
     res.json({ quote: updated });
   },

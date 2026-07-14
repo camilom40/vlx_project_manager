@@ -18,6 +18,9 @@ export const MANAGEMENT_TEAM = "Gerencia";
 // Equipo cotizador: sus líderes asignan cotizaciones a sus miembros
 export const BUDGET_TEAM = "Presupuesto";
 
+// Equipo que crea centros de costo y genera el proyecto de la cotización aceptada
+export const ACCOUNTING_TEAM = "Contabilidad";
+
 /**
  * Permisos efectivos de un usuario:
  * base del equipo, sobreescrita módulo a módulo por sus overrides.
