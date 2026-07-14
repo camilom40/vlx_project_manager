@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
+import { parseFecha } from "../lib/fechas";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
@@ -109,7 +110,7 @@ errorsRouter.post(
         responsibleId: responsibleId ? String(responsibleId) : null,
         costImpact: costImpact ?? null,
         delayImpactDays: delayImpactDays ? Number(delayImpactDays) : null,
-        occurredAt: occurredAt ? new Date(occurredAt) : new Date(),
+        occurredAt: occurredAt ? parseFecha(occurredAt) : new Date(),
         reportedById: req.user!.id,
       },
       include: {

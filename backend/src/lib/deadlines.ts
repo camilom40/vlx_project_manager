@@ -67,6 +67,7 @@ export async function checkQuoteDeadlines(): Promise<void> {
       titulo,
       `La cotización "${q.title}" del cliente ${q.clientName} ${plazo} (fecha límite: ${fechaLimite}) y aún no se ha enviado al cliente.`,
       null,
+      q.id,
     );
     await prisma.quote.update({
       where: { id: q.id },
@@ -114,6 +115,7 @@ export async function checkOverdueQuotes(): Promise<void> {
       `Cotización vencida sin enviar: ${q.title}`,
       `La cotización "${q.title}" del cliente ${q.clientName} venció el ${fechaLimite}${dias > 0 ? ` (hace ${dias} ${dias === 1 ? "día" : "días"})` : ""} y no se envió al cliente. Requiere atención de Gerencia.`,
       null,
+      q.id,
     );
     await prisma.quote.update({
       where: { id: q.id },

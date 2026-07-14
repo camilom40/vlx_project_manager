@@ -470,8 +470,9 @@ model Quote {
   managementApprovedBy   User?     @relation("QuoteManagementApprover", fields: [managementApprovedById], references: [id])
   managementApprovedAt   DateTime?
 
-  contactLogs QuoteContactLog[]
-  rejection   QuoteRejection?
+  contactLogs   QuoteContactLog[]
+  rejection     QuoteRejection?
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -762,6 +763,8 @@ model Notification {
   body        String
   projectId   String?
   project     Project?            @relation(fields: [projectId], references: [id])
+  quoteId     String?
+  quote       Quote?              @relation(fields: [quoteId], references: [id], onDelete: SetNull)
   read        Boolean             @default(false)
   sentAt      DateTime?
   error       String? // fallo de envío, para reintentos

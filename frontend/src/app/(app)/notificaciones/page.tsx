@@ -24,6 +24,7 @@ interface Notificacion {
   error: string | null;
   createdAt: string;
   project: { id: string; name: string } | null;
+  quote: { id: string; title: string } | null;
 }
 
 export default function NotificacionesPage() {
@@ -113,6 +114,17 @@ export default function NotificacionesPage() {
                         className="text-brand hover:underline"
                       >
                         {n.project.name}
+                      </Link>
+                    </>
+                  )}
+                  {n.quote && (
+                    <>
+                      {" · "}
+                      <Link
+                        href={`/cotizaciones/${n.quote.id}`}
+                        className="text-brand hover:underline"
+                      >
+                        Ver cotización
                       </Link>
                     </>
                   )}

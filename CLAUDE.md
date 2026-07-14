@@ -36,6 +36,14 @@ PostgreSQL 17 **portable** en `C:\Users\Camilo Mejia\pgsql17` (la instalación c
 - Timestamps de analítica en `Quote` (assignedAt/completedAt/sentAt/clientRespondedAt) alimentan el CRM.
 - Enums en español-mayúsculas (p. ej. `EN_REVISION`); la UI los traduce a etiquetas legibles.
 
+## Convenciones estructurales (post-entrega, 2026-07-15)
+- **Responsabilidad "el balón en tu cancha"**: ÚNICA fuente en `backend/src/lib/responsabilidad.ts` (`cotizacionRequiereAccion`, `puedeAsignarCotizaciones`). La consumen el contador `/api/pendientes`, el flag `requiereAccion` que devuelve `GET /api/quotes` (el frontend NO re-implementa la regla) y los permisos de asignación. Si cambia una responsabilidad del flujo, se cambia solo ahí.
+- **Pruebas de integración**: `cd backend && npm test` (vitest + supertest contra la app real en `src/app.ts`, separada de `index.ts`). Crean sus propios usuarios/datos con prefijo [TEST] y se limpian solos. Ampliar la suite al agregar flujos.
+- **Fechas solo-día** (inputs `type="date"`): parsearlas SIEMPRE con `parseFecha()` de `backend/src/lib/fechas.ts` (mediodía UTC, evita el corrimiento de un día en UTC-5).
+- **Equipos del sistema** (Gerencia, Presupuesto, Contabilidad, Tesorería, Planeación): el código depende de sus nombres; el endpoint de renombrar los bloquea (`EQUIPOS_DEL_SISTEMA` en `routes/teams.ts`).
+- **Notificaciones**: `notify(..., projectId?, quoteId?)` — pasar el `quoteId` en eventos de cotización para que la bandeja muestre "Ver cotización".
+- **Máquina de estados de cotización**: los endpoints validan el estado de origen (aprobar solo desde EN_REVISION, responder solo desde ENVIADA/SIN_RESPUESTA, completar solo desde BORRADOR/CAMBIOS_SOLICITADOS que además limpia aprobaciones anteriores).
+
 ## Estado de fases
 - [x] Fase 0 — Setup, estructura, git conectado al remoto.
 - [x] Fase 1 — Schema de Prisma completo (31 tablas), migración `init` aplicada, smoke test de conexión OK.

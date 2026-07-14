@@ -1,12 +1,8 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate } from "../middleware/auth";
-import {
-  ACCOUNTING_TEAM,
-  BUDGET_TEAM,
-  can,
-  MANAGEMENT_TEAM,
-} from "../lib/permissions";
+import { can } from "../lib/permissions";
+import { cotizacionRequiereAccion } from "../lib/responsabilidad";
 import {
   AppModule,
   AssignmentRole,
@@ -27,57 +23,33 @@ pendientesRouter.get("/", async (req, res) => {
   const pendientes: Record<string, number> = {};
 
   if (can(user.permissions, AppModule.COTIZACIONES, "ver")) {
-    const esGerencia = user.teamName === MANAGEMENT_TEAM;
-    const puedeAsignar =
-      esGerencia || (user.isTeamLead && user.teamName === BUDGET_TEAM);
-    const esContabilidad = user.teamName === ACCOUNTING_TEAM;
-    const [sinAsignar, porAprobar, porGenerarProyecto, mias] = await Promise.all([
-      // El balón está en la cancha del líder: asignar las ingresadas
-      puedeAsignar
-        ? prisma.quote.count({ where: { status: QuoteStatus.INGRESADA } })
-        : Promise.resolve(0),
-      // ...y aprobar las que están en revisión (Gerencia también las suyas)
-      puedeAsignar
-        ? prisma.quote.count({
-            where: {
-              status: QuoteStatus.EN_REVISION,
-              OR: [
-                { budgetApprovedAt: null },
-                ...(esGerencia
-                  ? [
-                      {
-                        requiresManagementApproval: true,
-                        managementApprovedAt: null,
-                      },
-                    ]
-                  : []),
-              ],
-            },
-          })
-        : Promise.resolve(0),
-      // Aceptadas sin proyecto: Contabilidad crea el CC y genera el proyecto
-      esContabilidad
-        ? prisma.quote.count({
-            where: { status: QuoteStatus.ACEPTADA, projectId: null },
-          })
-        : Promise.resolve(0),
-      // El balón está en la cancha del cotizador: elaborar o enviar la aprobada
-      prisma.quote.count({
-        where: {
-          quoterId: user.id,
-          OR: [
-            {
-              status: {
-                in: [QuoteStatus.BORRADOR, QuoteStatus.CAMBIOS_SOLICITADOS],
-              },
-            },
-            { status: QuoteStatus.APROBADA },
+    // Misma regla del punto de acción del tablero (lib/responsabilidad):
+    // se traen las cotizaciones abiertas y se filtra con la fuente única.
+    const abiertas = await prisma.quote.findMany({
+      where: {
+        status: {
+          in: [
+            QuoteStatus.INGRESADA,
+            QuoteStatus.BORRADOR,
+            QuoteStatus.CAMBIOS_SOLICITADOS,
+            QuoteStatus.EN_REVISION,
+            QuoteStatus.APROBADA,
+            QuoteStatus.ACEPTADA,
           ],
         },
-      }),
-    ]);
-    pendientes[AppModule.COTIZACIONES] =
-      sinAsignar + porAprobar + porGenerarProyecto + mias;
+      },
+      select: {
+        status: true,
+        quoterId: true,
+        projectId: true,
+        budgetApprovedAt: true,
+        requiresManagementApproval: true,
+        managementApprovedAt: true,
+      },
+    });
+    pendientes[AppModule.COTIZACIONES] = abiertas.filter((q) =>
+      cotizacionRequiereAccion(user, q),
+    ).length;
   }
 
   // Tareas de proyecto asignadas a mí que dependen de mí (no bloqueadas)

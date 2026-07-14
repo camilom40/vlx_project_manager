@@ -5,6 +5,7 @@ import {
   projectRoleUserIds,
   teamMemberIds,
 } from "../lib/notifications";
+import { parseFecha } from "../lib/fechas";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
@@ -92,7 +93,7 @@ produccionRouter.post(
         projectId: project.id,
         supervisorId: project.assignments[0]?.userId ?? req.user!.id,
         details,
-        surveyedAt: surveyedAt ? new Date(surveyedAt) : new Date(),
+        surveyedAt: surveyedAt ? parseFecha(surveyedAt) : new Date(),
         requiredDeliveryNotes: requiredDeliveryNotes
           ? String(requiredDeliveryNotes)
           : null,
@@ -154,7 +155,7 @@ produccionRouter.post(
         actaVanosId: actaVanosId ? String(actaVanosId) : null,
         code: code ? String(code) : `DT-${String(count + 1).padStart(4, "0")}`,
         despiece,
-        requiredDeliveryDate: new Date(requiredDeliveryDate),
+        requiredDeliveryDate: parseFecha(requiredDeliveryDate),
         priority: Object.values(Priority).includes(priority)
           ? priority
           : Priority.MEDIA,
@@ -195,7 +196,7 @@ produccionRouter.put(
         status: status ?? undefined,
         priority: priority ?? undefined,
         requiredDeliveryDate: requiredDeliveryDate
-          ? new Date(requiredDeliveryDate)
+          ? parseFecha(requiredDeliveryDate)
           : undefined,
         despiece: despiece ?? undefined,
         queuedAt: status === DTStatus.EN_COLA ? new Date() : undefined,

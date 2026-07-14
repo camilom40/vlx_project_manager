@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
 import { notify } from "../lib/notifications";
+import { parseFecha } from "../lib/fechas";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
@@ -182,8 +183,8 @@ projectsRouter.post(
         contractAmount: contractAmount ?? null,
         advancePercent: advancePercent ?? null,
         warrantyRetentionPercent: warrantyRetentionPercent ?? null,
-        startDate: startDate ? new Date(startDate) : null,
-        estimatedEndDate: estimatedEndDate ? new Date(estimatedEndDate) : null,
+        startDate: startDate ? parseFecha(startDate) : null,
+        estimatedEndDate: estimatedEndDate ? parseFecha(estimatedEndDate) : null,
         notes: notes ? String(notes) : null,
         stageHistory: {
           create: {
@@ -322,19 +323,19 @@ projectsRouter.put(
         startDate:
           startDate !== undefined
             ? startDate
-              ? new Date(startDate)
+              ? parseFecha(startDate)
               : null
             : undefined,
         estimatedEndDate:
           estimatedEndDate !== undefined
             ? estimatedEndDate
-              ? new Date(estimatedEndDate)
+              ? parseFecha(estimatedEndDate)
               : null
             : undefined,
         actualEndDate:
           actualEndDate !== undefined
             ? actualEndDate
-              ? new Date(actualEndDate)
+              ? parseFecha(actualEndDate)
               : null
             : undefined,
         notes: notes !== undefined ? (notes ? String(notes) : null) : undefined,

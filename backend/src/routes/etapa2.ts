@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { logAudit } from "../lib/audit";
 import { notify, projectRoleUserIds, teamMemberIds } from "../lib/notifications";
+import { parseFecha } from "../lib/fechas";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import {
@@ -51,7 +52,7 @@ etapa2Router.post(
       data: {
         projectId: project.id,
         deliveryTermDays: deliveryTermDays ? Number(deliveryTermDays) : null,
-        receivedAt: receivedAt ? new Date(receivedAt) : new Date(),
+        receivedAt: receivedAt ? parseFecha(receivedAt) : new Date(),
       },
     });
     await logAudit(req.user!.id, "registrar_contrato", "Contract", contract.id);

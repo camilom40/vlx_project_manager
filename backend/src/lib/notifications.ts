@@ -60,6 +60,7 @@ export async function notify(
   title: string,
   body: string,
   projectId?: string | null,
+  quoteId?: string | null,
 ): Promise<void> {
   const unique = [...new Set(recipientIds.filter(Boolean))];
   if (unique.length === 0) return;
@@ -77,6 +78,7 @@ export async function notify(
           title,
           body,
           projectId: projectId ?? null,
+          quoteId: quoteId ?? null,
         },
       });
       try {
@@ -105,6 +107,7 @@ export async function notify(
             title,
             body,
             projectId: projectId ?? null,
+            quoteId: quoteId ?? null,
           },
         });
         try {

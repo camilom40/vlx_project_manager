@@ -10,7 +10,10 @@ notificationsRouter.use(authenticate);
 notificationsRouter.get("/", async (req, res) => {
   const notifications = await prisma.notification.findMany({
     where: { recipientId: req.user!.id },
-    include: { project: { select: { id: true, name: true } } },
+    include: {
+      project: { select: { id: true, name: true } },
+      quote: { select: { id: true, title: true } },
+    },
     orderBy: { createdAt: "desc" },
     take: 100,
   });

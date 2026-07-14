@@ -2,6 +2,11 @@ import { Router } from "express";
 import { logAudit } from "../lib/audit";
 import { notify, teamLeadIds, teamMemberIds } from "../lib/notifications";
 import { ACCOUNTING_TEAM, BUDGET_TEAM, MANAGEMENT_TEAM } from "../lib/permissions";
+import {
+  cotizacionRequiereAccion,
+  puedeAsignarCotizaciones,
+} from "../lib/responsabilidad";
+import { parseFecha } from "../lib/fechas";
 import { prisma } from "../lib/prisma";
 import { Prisma } from "../generated/prisma/client";
 import { authenticate, authorize, AuthUser } from "../middleware/auth";
@@ -37,17 +42,9 @@ const quoteInclude = {
   },
 } as const;
 
-// ¿Puede asignar cotizaciones? Gerencia o líder del equipo Presupuesto
-function canAssignQuotes(user: AuthUser): boolean {
-  return (
-    user.teamName === MANAGEMENT_TEAM ||
-    (user.isTeamLead && user.teamName === BUDGET_TEAM)
-  );
-}
-
 // ¿Puede trabajar esta cotización? Quien asigna, o el cotizador responsable
 function canManageQuote(user: AuthUser, quote: { quoterId: string | null }): boolean {
-  return canAssignQuotes(user) || quote.quoterId === user.id;
+  return puedeAsignarCotizaciones(user) || quote.quoterId === user.id;
 }
 
 // Cliente: seleccionado del módulo de clientes, o nombre libre
@@ -99,7 +96,14 @@ quotesRouter.get(
       include: quoteInclude,
       orderBy: [{ sentAt: "asc" }, { receivedAt: "asc" }],
     });
-    res.json({ quotes });
+    res.json({
+      quotes: quotes.map((q) => ({
+        ...q,
+        // "El balón está en tu cancha": calculado en el servidor con la
+        // misma regla del contador de pendientes (lib/responsabilidad)
+        requiereAccion: cotizacionRequiereAccion(req.user!, q),
+      })),
+    });
   },
 );
 
@@ -344,8 +348,8 @@ quotesRouter.post(
         market,
         company,
         currency,
-        receivedAt: receivedAt ? new Date(receivedAt) : new Date(),
-        dueDate: dueDate ? new Date(dueDate) : null,
+        receivedAt: receivedAt ? parseFecha(receivedAt) : new Date(),
+        dueDate: dueDate ? parseFecha(dueDate) : null,
       },
       include: quoteInclude,
     });
@@ -360,6 +364,7 @@ quotesRouter.post(
       `Nueva cotización por asignar: ${quote.title}`,
       `Ingresó la cotización "${quote.title}" del cliente ${quote.clientName}. Asígnala a un cotizador para empezar a trabajarla.`,
       null,
+      quote.id,
     );
     res.status(201).json({ quote });
   },
@@ -370,7 +375,7 @@ quotesRouter.post(
   "/:id/asignar",
   authorize(AppModule.COTIZACIONES, "editar"),
   async (req, res) => {
-    if (!canAssignQuotes(req.user!)) {
+    if (!puedeAsignarCotizaciones(req.user!)) {
       res.status(403).json({
         error:
           "Solo los líderes de Presupuesto o Gerencia pueden asignar cotizaciones.",
@@ -419,6 +424,7 @@ quotesRouter.post(
         `Cotización asignada: ${updated.title}`,
         `${req.user!.name} te asignó la cotización "${updated.title}" del cliente ${updated.clientName}.`,
         null,
+        updated.id,
       );
     }
     res.json({ quote: updated });
@@ -512,9 +518,9 @@ quotesRouter.put(
     if (market !== undefined) data.market = market;
     if (company !== undefined) data.company = company;
     if (currency !== undefined) data.currency = currency;
-    if (receivedAt !== undefined) data.receivedAt = new Date(receivedAt);
+    if (receivedAt !== undefined) data.receivedAt = parseFecha(receivedAt);
     if (dueDate !== undefined) {
-      data.dueDate = dueDate ? new Date(dueDate) : null;
+      data.dueDate = dueDate ? parseFecha(dueDate) : null;
       // El plazo cambió → recordatorio y escalamiento se replanifican
       data.dueSoonNotifiedAt = null;
       data.overdueNotifiedAt = null;
@@ -549,6 +555,7 @@ quotesRouter.put(
         `Cotización lista para revisar: ${quote.title}`,
         `${req.user!.name} terminó de elaborar la cotización "${quote.title}" del cliente ${quote.clientName} y está lista para tu aprobación.`,
         null,
+        quote.id,
       );
     }
     res.json({ quote });
@@ -566,6 +573,13 @@ quotesRouter.post(
     });
     if (!quote) {
       res.status(404).json({ error: "Cotización no encontrada." });
+      return;
+    }
+    // Guarda de estado: solo se aprueba lo que está en revisión
+    if (quote.status !== QuoteStatus.EN_REVISION) {
+      res.status(400).json({
+        error: "Solo una cotización en revisión puede aprobarse.",
+      });
       return;
     }
     if (tipo === "gerencia" && req.user!.teamName !== MANAGEMENT_TEAM) {
@@ -612,6 +626,7 @@ quotesRouter.post(
         `Cotización aprobada: ${updated.title}`,
         `La cotización "${updated.title}" del cliente ${updated.clientName} quedó aprobada y lista para enviarse al cliente.`,
         null,
+        updated.id,
       );
     }
     await logAudit(
@@ -674,6 +689,17 @@ quotesRouter.post(
       res.status(404).json({ error: "Cotización no encontrada." });
       return;
     }
+    // Guarda de estado: la respuesta del cliente aplica sobre lo enviado
+    const puedeResponderse = (
+      [QuoteStatus.ENVIADA, QuoteStatus.SIN_RESPUESTA] as QuoteStatus[]
+    ).includes(quote.status);
+    if (!puedeResponderse) {
+      res.status(400).json({
+        error:
+          "Solo una cotización enviada al cliente puede registrar su respuesta.",
+      });
+      return;
+    }
     if (
       estado === QuoteStatus.RECHAZADA &&
       !Object.values(QuoteRejectionReason).includes(razon)
@@ -716,6 +742,7 @@ quotesRouter.post(
         `Cambios solicitados: ${updated.title}`,
         `El cliente ${updated.clientName} pidió cambios en la cotización "${updated.title}". Ajústala y pásala de nuevo a revisión.`,
         null,
+        updated.id,
       );
     } else if (estado === QuoteStatus.ACEPTADA) {
       const contabilidad = await teamMemberIds(ACCOUNTING_TEAM);
@@ -727,6 +754,7 @@ quotesRouter.post(
         `Cotización aceptada: ${updated.title}`,
         `El cliente ${updated.clientName} aceptó la cotización "${updated.title}". Contabilidad debe crear el centro de costo y generar el proyecto.`,
         null,
+        updated.id,
       );
     }
     res.json({ quote: updated });
@@ -777,7 +805,7 @@ quotesRouter.post(
           contractAmount: quote.amount,
           type: ProjectType.PRINCIPAL,
           costCenter: String(costCenter).trim(),
-          startDate: startDate ? new Date(startDate) : null,
+          startDate: startDate ? parseFecha(startDate) : null,
           stageHistory: {
             create: {
               toStage: ProjectStage.CONTRATO,

@@ -40,12 +40,11 @@ interface Cotizacion {
   receivedAt: string;
   dueDate: string | null;
   sentAt: string | null;
-  budgetApprovedAt: string | null;
-  requiresManagementApproval: boolean;
-  managementApprovedAt: string | null;
   quoter: { id: string; name: string } | null;
   project: { id: string; name: string } | null;
   rejection: { reason: string } | null;
+  // Calculado por el servidor: "el balón está en tu cancha"
+  requiereAccion: boolean;
 }
 
 interface Asignable {
@@ -175,32 +174,6 @@ export default function CotizacionesPage() {
       await cargar();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al asignar.");
-    }
-  }
-
-  // ¿El balón está en mi cancha? (mismas reglas del contador de la barra)
-  const esGerencia = usuario?.teamName === "Gerencia";
-  function requiereMiAccion(q: Cotizacion): boolean {
-    const esMia = Boolean(usuario && q.quoter?.id === usuario.id);
-    switch (q.status) {
-      case "INGRESADA":
-        return puedeAsignar;
-      case "EN_REVISION":
-        return (
-          (puedeAsignar && !q.budgetApprovedAt) ||
-          (esGerencia &&
-            q.requiresManagementApproval &&
-            !q.managementApprovedAt)
-        );
-      case "BORRADOR":
-      case "CAMBIOS_SOLICITADOS":
-      case "APROBADA":
-        return esMia;
-      case "ACEPTADA":
-        // Contabilidad crea el centro de costo y genera el proyecto
-        return usuario?.teamName === "Contabilidad" && !q.project;
-      default:
-        return false;
     }
   }
 
@@ -364,7 +337,7 @@ export default function CotizacionesPage() {
                       className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm"
                     >
                       <span className="flex items-center gap-2">
-                        <PuntoAccion visible={requiereMiAccion(q)} />
+                        <PuntoAccion visible={q.requiereAccion} />
                         <span>
                           <Link
                             href={`/cotizaciones/${q.id}`}
@@ -480,7 +453,7 @@ export default function CotizacionesPage() {
                     >
                       <td className="px-4 py-3">
                         <span className="flex items-center gap-2">
-                          <PuntoAccion visible={requiereMiAccion(q)} />
+                          <PuntoAccion visible={q.requiereAccion} />
                           <span>
                             <Link
                               href={`/cotizaciones/${q.id}`}

@@ -3,6 +3,21 @@ import { logAudit } from "../lib/audit";
 import { prisma } from "../lib/prisma";
 import { authenticate, authorize } from "../middleware/auth";
 import { AppModule } from "../generated/prisma/enums";
+import {
+  ACCOUNTING_TEAM,
+  BUDGET_TEAM,
+  MANAGEMENT_TEAM,
+} from "../lib/permissions";
+
+// Equipos cuyo NOMBRE usa la lógica del sistema (asignación de cotizaciones,
+// notificaciones, permisos implícitos). Renombrarlos rompería esos flujos.
+const EQUIPOS_DEL_SISTEMA = new Set([
+  MANAGEMENT_TEAM,
+  BUDGET_TEAM,
+  ACCOUNTING_TEAM,
+  "Tesorería",
+  "Planeación",
+]);
 
 export const teamsRouter = Router();
 
@@ -47,6 +62,12 @@ teamsRouter.put("/:id", authorize(AppModule.EQUIPOS, "editar"), async (req, res)
   const team = await prisma.team.findUnique({ where: { id: String(req.params.id) } });
   if (!team) {
     res.status(404).json({ error: "Equipo no encontrado." });
+    return;
+  }
+  if (EQUIPOS_DEL_SISTEMA.has(team.name) && String(name).trim() !== team.name) {
+    res.status(400).json({
+      error: `"${team.name}" es un equipo del sistema: sus flujos (asignaciones, aprobaciones y notificaciones) dependen de ese nombre y no puede renombrarse.`,
+    });
     return;
   }
   const updated = await prisma.team.update({
