@@ -76,6 +76,19 @@ export const ESTADOS_COTIZACION: Record<string, string> = {
   SIN_RESPUESTA: "Sin respuesta",
 };
 
+// Qué acción sigue en cada estado de la cotización (lenguaje del negocio)
+export const ACCION_COTIZACION: Record<string, string> = {
+  INGRESADA: "Pendiente de asignación",
+  BORRADOR: "En elaboración",
+  CAMBIOS_SOLICITADOS: "Ajustes solicitados por el cliente",
+  EN_REVISION: "Pendiente de aprobación",
+  APROBADA: "Pendiente de envío al cliente",
+  ENVIADA: "Esperando respuesta del cliente",
+  SIN_RESPUESTA: "Esperando respuesta del cliente",
+  ACEPTADA: "Pendiente de generar proyecto",
+  RECHAZADA: "Cerrada: rechazada por el cliente",
+};
+
 export const RAZONES_RECHAZO: Record<string, string> = {
   MUY_COSTOSOS: "Muy costosos",
   NO_INFORMARON: "No informaron",

@@ -218,7 +218,7 @@ export default function ProyectosPage() {
 
       <div className="mt-4 flex flex-wrap gap-3">
         <Entrada
-          placeholder="Buscar por nombre o cliente..."
+          placeholder="Buscar por nombre, cliente o centro de costo..."
           value={buscar}
           onChange={(e) => setBuscar(e.target.value)}
           className="max-w-xs"
@@ -257,6 +257,7 @@ export default function ProyectosPage() {
           <thead>
             <tr className="border-b border-border bg-background/60 text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-4 py-3">Proyecto</th>
+              <th className="px-4 py-3">Centro de costo</th>
               <th className="px-4 py-3">Cliente</th>
               <th className="px-4 py-3">Etapa</th>
               <th className="px-4 py-3">Estado</th>
@@ -295,6 +296,9 @@ export default function ProyectosPage() {
                     </span>
                   )}
                 </td>
+                <td className="px-4 py-3 font-mono text-xs">
+                  {p.costCenter ?? <span className="text-muted">—</span>}
+                </td>
                 <td className="px-4 py-3 text-muted">{p.clientName}</td>
                 <td className="px-4 py-3">
                   <Badge tono={tonoEtapa(p.currentStage)}>
@@ -316,7 +320,7 @@ export default function ProyectosPage() {
             ))}
             {proyectos.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center">
+                <td colSpan={7} className="px-4 py-10 text-center">
                   <EstadoVacio>
                     No hay proyectos que coincidan. Crea el primero con
                     &quot;Nuevo proyecto&quot;.

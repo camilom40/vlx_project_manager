@@ -1,11 +1,12 @@
-import { notify, teamLeadIds } from "./notifications";
-import { BUDGET_TEAM } from "./permissions";
+import { notify, teamLeadIds, teamMemberIds } from "./notifications";
+import { BUDGET_TEAM, MANAGEMENT_TEAM } from "./permissions";
 import { prisma } from "./prisma";
 import { QuoteStatus } from "../generated/prisma/enums";
 
 // Recordatorio de licitaciones: cotizaciones con fecha límite que aún no se
 // han enviado al cliente. Se avisa una sola vez cuando faltan 3 días o menos
-// (dueSoonNotifiedAt se resetea si la fecha límite cambia).
+// (dueSoonNotifiedAt se resetea si la fecha límite cambia). Si la fecha pasa
+// sin que se envíe, se escala una vez a Gerencia (overdueNotifiedAt).
 
 const DIAS_ANTICIPACION = 3;
 const INTERVALO_MS = 60 * 60 * 1000; // cada hora
@@ -74,11 +75,62 @@ export async function checkQuoteDeadlines(): Promise<void> {
   }
 }
 
+// Escalamiento: la fecha límite ya pasó y la cotización sigue sin enviarse →
+// avisar una sola vez a Gerencia (además del responsable y los líderes).
+export async function checkOverdueQuotes(): Promise<void> {
+  const ahora = new Date();
+  const vencidas = await prisma.quote.findMany({
+    where: {
+      dueDate: { not: null, lt: ahora },
+      overdueNotifiedAt: null,
+      status: { in: ESTADOS_PRE_ENVIO },
+    },
+    select: {
+      id: true,
+      title: true,
+      clientName: true,
+      dueDate: true,
+      quoterId: true,
+    },
+  });
+  if (vencidas.length === 0) return;
+
+  const [gerencia, lideres] = await Promise.all([
+    teamMemberIds(MANAGEMENT_TEAM),
+    teamLeadIds(BUDGET_TEAM),
+  ]);
+  for (const q of vencidas) {
+    const dias = Math.floor(
+      (ahora.getTime() - q.dueDate!.getTime()) / 86400000,
+    );
+    const fechaLimite = q.dueDate!.toLocaleDateString("es-CO", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    void notify(
+      [...gerencia, ...lideres, ...(q.quoterId ? [q.quoterId] : [])],
+      "cotizacion.vencida",
+      `Cotización vencida sin enviar: ${q.title}`,
+      `La cotización "${q.title}" del cliente ${q.clientName} venció el ${fechaLimite}${dias > 0 ? ` (hace ${dias} ${dias === 1 ? "día" : "días"})` : ""} y no se envió al cliente. Requiere atención de Gerencia.`,
+      null,
+    );
+    await prisma.quote.update({
+      where: { id: q.id },
+      data: { overdueNotifiedAt: ahora },
+    });
+  }
+}
+
 export function startDeadlineWatcher(): void {
-  const correr = () =>
+  const correr = () => {
     checkQuoteDeadlines().catch((err) =>
       console.error("Error revisando fechas límite de cotizaciones:", err),
     );
+    checkOverdueQuotes().catch((err) =>
+      console.error("Error escalando cotizaciones vencidas:", err),
+    );
+  };
   correr();
   setInterval(correr, INTERVALO_MS);
 }

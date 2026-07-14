@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import {
+  ACCION_COTIZACION,
   EMPRESAS,
   ESTADOS_COTIZACION,
   RAZONES_RECHAZO,
@@ -20,6 +21,7 @@ import {
   EstadoVacio,
   Interruptor,
   MensajeError,
+  PuntoAccion,
   Selector,
   Tarjeta,
   tonoCotizacion,
@@ -38,6 +40,9 @@ interface Cotizacion {
   receivedAt: string;
   dueDate: string | null;
   sentAt: string | null;
+  budgetApprovedAt: string | null;
+  requiresManagementApproval: boolean;
+  managementApprovedAt: string | null;
   quoter: { id: string; name: string } | null;
   project: { id: string; name: string } | null;
   rejection: { reason: string } | null;
@@ -68,6 +73,20 @@ interface Analitica {
   sinAsignar: number;
   margenPromedioGlobal: number | null;
   totalCotizaciones: number;
+  montosPorMoneda: Record<
+    string,
+    { cotizado: number; contratado: number; perdido: number }
+  >;
+  porCliente: {
+    cliente: string;
+    moneda: string;
+    total: number;
+    aceptadas: number;
+    rechazadas: number;
+    cotizado: number;
+    contratado: number;
+    perdido: number;
+  }[];
 }
 
 export default function CotizacionesPage() {
@@ -159,7 +178,37 @@ export default function CotizacionesPage() {
     }
   }
 
+  // ¿El balón está en mi cancha? (mismas reglas del contador de la barra)
+  const esGerencia = usuario?.teamName === "Gerencia";
+  function requiereMiAccion(q: Cotizacion): boolean {
+    const esMia = Boolean(usuario && q.quoter?.id === usuario.id);
+    switch (q.status) {
+      case "INGRESADA":
+        return puedeAsignar;
+      case "EN_REVISION":
+        return (
+          (puedeAsignar && !q.budgetApprovedAt) ||
+          (esGerencia &&
+            q.requiresManagementApproval &&
+            !q.managementApprovedAt)
+        );
+      case "BORRADOR":
+      case "CAMBIOS_SOLICITADOS":
+      case "APROBADA":
+        return esMia;
+      case "ACEPTADA":
+        return esMia && !q.project;
+      default:
+        return false;
+    }
+  }
+
   const porAsignar = cotizaciones.filter((q) => q.status === "INGRESADA");
+
+  // Cotizaciones en etapa CRM (enviadas, esperando respuesta del cliente)
+  const enCRM = cotizaciones.filter((q) =>
+    ["ENVIADA", "SIN_RESPUESTA"].includes(q.status),
+  ).length;
 
   const filtradas = cotizaciones.filter((q) => {
     if (filtroEstado && q.status !== filtroEstado) return false;
@@ -288,6 +337,11 @@ export default function CotizacionesPage() {
             }`}
           >
             CRM y analítica
+            {enCRM > 0 && (
+              <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/15 px-1.5 text-[10px] font-bold text-brand">
+                {enCRM}
+              </span>
+            )}
           </button>
         )}
       </div>
@@ -308,14 +362,19 @@ export default function CotizacionesPage() {
                       key={q.id}
                       className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm"
                     >
-                      <span>
-                        <Link
-                          href={`/cotizaciones/${q.id}`}
-                          className="font-medium text-brand hover:underline"
-                        >
-                          {q.title}
-                        </Link>
-                        <span className="ml-2 text-muted">{q.clientName}</span>
+                      <span className="flex items-center gap-2">
+                        <PuntoAccion visible={requiereMiAccion(q)} />
+                        <span>
+                          <Link
+                            href={`/cotizaciones/${q.id}`}
+                            className="font-medium text-brand hover:underline"
+                          >
+                            {q.title}
+                          </Link>
+                          <span className="ml-2 text-muted">
+                            {q.clientName}
+                          </span>
+                        </span>
                       </span>
                       <span className="flex flex-wrap items-center gap-2">
                         <Badge tono={dias > 7 ? "rojo" : dias > 3 ? "naranja" : "azul"}>
@@ -419,14 +478,19 @@ export default function CotizacionesPage() {
                       className="border-b border-border last:border-0 hover:bg-brand-light/20"
                     >
                       <td className="px-4 py-3">
-                        <Link
-                          href={`/cotizaciones/${q.id}`}
-                          className="font-medium text-brand hover:underline"
-                        >
-                          {q.title}
-                        </Link>
-                        <span className="block text-xs text-muted">
-                          {q.clientName}
+                        <span className="flex items-center gap-2">
+                          <PuntoAccion visible={requiereMiAccion(q)} />
+                          <span>
+                            <Link
+                              href={`/cotizaciones/${q.id}`}
+                              className="font-medium text-brand hover:underline"
+                            >
+                              {q.title}
+                            </Link>
+                            <span className="block text-xs text-muted">
+                              {q.clientName}
+                            </span>
+                          </span>
                         </span>
                       </td>
                       <td className="px-4 py-3">
@@ -441,6 +505,11 @@ export default function CotizacionesPage() {
                         <Badge tono={tonoCotizacion(q.status)}>
                           {ESTADOS_COTIZACION[q.status]}
                         </Badge>
+                        <span className="block text-xs text-muted">
+                          {q.status === "ACEPTADA" && q.project
+                            ? "Proyecto generado"
+                            : ACCION_COTIZACION[q.status]}
+                        </span>
                         {q.rejection && (
                           <span className="block text-xs text-muted">
                             {RAZONES_RECHAZO[q.rejection.reason]}
@@ -618,6 +687,81 @@ export default function CotizacionesPage() {
               )}
             </Tarjeta>
           </div>
+
+          {/* Dinero: cotizado, contratado y perdido (por moneda) */}
+          <div className="mt-4 grid grid-cols-3 gap-4">
+            {Object.entries(analitica.montosPorMoneda).map(([mon, m]) => (
+              <div key={mon} className="contents">
+                <Tarjeta className="p-4">
+                  <p className="text-xs uppercase text-muted">
+                    Cotizado ({mon})
+                  </p>
+                  <p className="mt-1 font-mono text-xl font-semibold">
+                    {moneda(m.cotizado, mon)}
+                  </p>
+                </Tarjeta>
+                <Tarjeta className="p-4">
+                  <p className="text-xs uppercase text-muted">
+                    Contratado ({mon})
+                  </p>
+                  <p className="mt-1 font-mono text-xl font-semibold text-success">
+                    {moneda(m.contratado, mon)}
+                  </p>
+                </Tarjeta>
+                <Tarjeta className="p-4">
+                  <p className="text-xs uppercase text-muted">
+                    Perdido ({mon})
+                  </p>
+                  <p className="mt-1 font-mono text-xl font-semibold text-danger">
+                    {moneda(m.perdido, mon)}
+                  </p>
+                </Tarjeta>
+              </div>
+            ))}
+          </div>
+
+          {/* Por constructora */}
+          {analitica.porCliente.length > 0 && (
+            <Tarjeta className="mt-4 p-5">
+              <h2 className="text-sm font-semibold">Por constructora</h2>
+              <table className="mt-3 w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs uppercase text-muted">
+                    <th className="py-2">Constructora</th>
+                    <th className="py-2">Cotizaciones</th>
+                    <th className="py-2">Cotizado</th>
+                    <th className="py-2">Contratado</th>
+                    <th className="py-2">Perdido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {analitica.porCliente.map((c) => (
+                    <tr
+                      key={`${c.cliente}-${c.moneda}`}
+                      className="border-b border-border last:border-0"
+                    >
+                      <td className="py-2 font-medium">{c.cliente}</td>
+                      <td className="py-2">
+                        {c.total}
+                        <span className="ml-1 text-xs text-muted">
+                          ({c.aceptadas} ganadas · {c.rechazadas} perdidas)
+                        </span>
+                      </td>
+                      <td className="py-2 font-mono text-xs">
+                        {moneda(c.cotizado, c.moneda)}
+                      </td>
+                      <td className="py-2 font-mono text-xs text-success">
+                        {moneda(c.contratado, c.moneda)}
+                      </td>
+                      <td className="py-2 font-mono text-xs text-danger">
+                        {moneda(c.perdido, c.moneda)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Tarjeta>
+          )}
 
           {/* Pendientes ordenadas por días */}
           {pendientes.length > 0 && (

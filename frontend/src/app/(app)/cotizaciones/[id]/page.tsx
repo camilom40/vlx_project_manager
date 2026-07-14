@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import {
+  ACCION_COTIZACION,
   CANALES_CONTACTO,
   EMPRESAS,
   ESTADOS_COTIZACION,
@@ -248,6 +249,11 @@ export default function CotizacionDetallePage() {
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {q.title}
           </h1>
+          <p className="mt-1 text-sm font-medium text-brand">
+            {q.status === "ACEPTADA" && q.project
+              ? "Proyecto generado"
+              : ACCION_COTIZACION[q.status]}
+          </p>
           <p className="mt-1 text-sm text-muted">
             {q.clientName} · {EMPRESAS[q.company]} ·{" "}
             {q.market === "CO" ? "Colombia" : "Estados Unidos"} · Ingresó{" "}

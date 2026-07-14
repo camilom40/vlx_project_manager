@@ -127,6 +127,21 @@ export function Desplegable({
   );
 }
 
+/**
+ * Punto neón que marca un ítem que requiere acción del usuario actual
+ * (mismo color del contador de pendientes de la barra lateral).
+ */
+export function PuntoAccion({ visible = true }: { visible?: boolean }) {
+  if (!visible) return null;
+  return (
+    <span
+      title="Requiere tu acción"
+      aria-label="Requiere tu acción"
+      className="inline-block h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-accent shadow-[0_0_8px_2px_rgba(242,151,20,0.65)]"
+    />
+  );
+}
+
 // Estados en los que la cotización todavía no se ha enviado al cliente
 const ESTADOS_COTIZACION_PRE_ENVIO = [
   "INGRESADA",

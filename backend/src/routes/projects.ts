@@ -58,6 +58,12 @@ projectsRouter.get(
                     mode: "insensitive" as const,
                   },
                 },
+                {
+                  costCenter: {
+                    contains: String(buscar),
+                    mode: "insensitive" as const,
+                  },
+                },
               ],
             }
           : {}),

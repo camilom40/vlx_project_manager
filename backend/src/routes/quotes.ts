@@ -133,8 +133,55 @@ quotesRouter.get(
     let sinAsignar = 0;
     let margenTotal = 0;
     let margenCount = 0;
+    // Dinero: cuánto se cotiza, se contrata y se pierde (por moneda y por cliente)
+    const montosPorMoneda: Record<
+      string,
+      { cotizado: number; contratado: number; perdido: number }
+    > = {};
+    const porCliente: Record<
+      string,
+      {
+        cliente: string;
+        moneda: string;
+        total: number;
+        aceptadas: number;
+        rechazadas: number;
+        cotizado: number;
+        contratado: number;
+        perdido: number;
+      }
+    > = {};
 
     for (const q of quotes) {
+      const monto = q.amount !== null ? Number(q.amount) : 0;
+      montosPorMoneda[q.currency] ??= { cotizado: 0, contratado: 0, perdido: 0 };
+      const m = montosPorMoneda[q.currency];
+      m.cotizado += monto;
+      if (q.status === QuoteStatus.ACEPTADA) m.contratado += monto;
+      if (q.status === QuoteStatus.RECHAZADA) m.perdido += monto;
+
+      const claveCliente = `${q.clientName}__${q.currency}`;
+      porCliente[claveCliente] ??= {
+        cliente: q.clientName,
+        moneda: q.currency,
+        total: 0,
+        aceptadas: 0,
+        rechazadas: 0,
+        cotizado: 0,
+        contratado: 0,
+        perdido: 0,
+      };
+      const pc = porCliente[claveCliente];
+      pc.total++;
+      pc.cotizado += monto;
+      if (q.status === QuoteStatus.ACEPTADA) {
+        pc.aceptadas++;
+        pc.contratado += monto;
+      }
+      if (q.status === QuoteStatus.RECHAZADA) {
+        pc.rechazadas++;
+        pc.perdido += monto;
+      }
       if (!q.quoterId) sinAsignar++;
       if (q.assignedAt) {
         tiemposAsignacion.push(
@@ -205,6 +252,10 @@ quotesRouter.get(
       sinAsignar,
       margenPromedioGlobal: margenCount ? margenTotal / margenCount : null,
       totalCotizaciones: quotes.length,
+      montosPorMoneda,
+      porCliente: Object.values(porCliente).sort(
+        (a, b) => b.cotizado - a.cotizado,
+      ),
     });
   },
 );
@@ -464,8 +515,9 @@ quotesRouter.put(
     if (receivedAt !== undefined) data.receivedAt = new Date(receivedAt);
     if (dueDate !== undefined) {
       data.dueDate = dueDate ? new Date(dueDate) : null;
-      // El plazo cambió → el recordatorio se replanifica
+      // El plazo cambió → recordatorio y escalamiento se replanifican
       data.dueSoonNotifiedAt = null;
+      data.overdueNotifiedAt = null;
     }
     if (amount !== undefined) data.amount = amount;
     if (marginPercent !== undefined) data.marginPercent = marginPercent;
@@ -655,6 +707,26 @@ quotesRouter.post(
       estado,
       razon,
     });
+    // La respuesta del cliente le devuelve el balón al cotizador responsable
+    if (updated.quoterId && updated.quoterId !== req.user!.id) {
+      if (estado === QuoteStatus.CAMBIOS_SOLICITADOS) {
+        void notify(
+          [updated.quoterId],
+          "cotizacion.cambios_solicitados",
+          `Cambios solicitados: ${updated.title}`,
+          `El cliente ${updated.clientName} pidió cambios en la cotización "${updated.title}". Ajústala y pásala de nuevo a revisión.`,
+          null,
+        );
+      } else if (estado === QuoteStatus.ACEPTADA) {
+        void notify(
+          [updated.quoterId],
+          "cotizacion.aceptada",
+          `Cotización aceptada: ${updated.title}`,
+          `El cliente ${updated.clientName} aceptó la cotización "${updated.title}". Genera el proyecto para arrancar la etapa de contrato.`,
+          null,
+        );
+      }
+    }
     res.json({ quote: updated });
   },
 );

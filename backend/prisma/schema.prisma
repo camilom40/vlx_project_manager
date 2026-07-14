@@ -445,6 +445,7 @@ model Quote {
   receivedAt                 DateTime    @default(now()) // fecha de ingreso de la solicitud
   dueDate                    DateTime? // fecha límite para enviarla al cliente (licitaciones)
   dueSoonNotifiedAt          DateTime? // cuándo se envió el recordatorio de vencimiento
+  overdueNotifiedAt          DateTime? // cuándo se escaló a Gerencia por vencer sin enviarse
   projectId                  String?     @unique // proyecto generado al aceptarse
   project                    Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
   quoterId                   String?
