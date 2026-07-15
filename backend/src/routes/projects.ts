@@ -311,7 +311,16 @@ projectsRouter.get(
           orderBy: { createdAt: "desc" },
         },
         earlyStartAuthorizedBy: { select: { id: true, name: true } },
-        contracts: { select: { reviewerId: true } },
+        contracts: {
+          select: {
+            reviewerId: true,
+            status: true,
+            requiresPolicy: true,
+            requiresAdvance: true,
+          },
+        },
+        policies: { select: { status: true } },
+        advances: { select: { status: true } },
       },
     });
     if (!project) {
@@ -323,7 +332,31 @@ projectsRouter.get(
     const soyRevisorContrato = project.contracts.some(
       (c) => c.reviewerId === req.user!.id,
     );
-    res.json({ project: { ...project, soyRevisorContrato } });
+    // Pestañas que requieren la acción del usuario ahora mismo (para la pepita
+    // dentro del proyecto). Se calcula por pestaña, no por módulo.
+    const pr = polizasResueltas(project.policies);
+    const av = anticipoVerificado(project.advances);
+    const misTareas = await prisma.task.count({
+      where: {
+        projectId: project.id,
+        assigneeId: req.user!.id,
+        status: { in: [TaskStatus.PENDIENTE, TaskStatus.EN_PROGRESO] },
+      },
+    });
+    const accionPorTab = {
+      contrato: project.contracts.some((c) =>
+        contratoRequiereAccion(req.user!, {
+          status: c.status,
+          reviewerId: c.reviewerId,
+          requiresPolicy: c.requiresPolicy,
+          requiresAdvance: c.requiresAdvance,
+          polizasResueltas: pr,
+          anticipoResuelto: av,
+        }),
+      ),
+      tareas: misTareas > 0,
+    };
+    res.json({ project: { ...project, soyRevisorContrato, accionPorTab } });
   },
 );
 

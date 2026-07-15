@@ -22,6 +22,7 @@ import {
   Campo,
   Entrada,
   MensajeError,
+  PuntoAccion,
   Selector,
   Tarjeta,
   tonoEtapa,
@@ -57,6 +58,7 @@ interface Proyecto {
   earlyStartWithoutAdvance: boolean;
   earlyStartAuthorizedBy: UsuarioMin | null;
   soyRevisorContrato: boolean;
+  accionPorTab: Record<string, boolean>;
   originQuote: {
     id: string;
     title: string;
@@ -384,13 +386,14 @@ export default function ProyectoDetallePage() {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`rounded-t-lg px-4 py-2 text-sm font-medium transition ${
+            className={`flex items-center gap-1.5 rounded-t-lg px-4 py-2 text-sm font-medium transition ${
               tab === t.id
                 ? "border border-b-0 border-border bg-surface text-brand"
                 : "text-muted hover:text-foreground"
             }`}
           >
             {t.label}
+            <PuntoAccion visible={!!proyecto.accionPorTab?.[t.id]} />
           </button>
         ))}
       </div>
